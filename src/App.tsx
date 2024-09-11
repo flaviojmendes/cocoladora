@@ -141,7 +141,7 @@ function App() {
               ) : (
                 <>
                   <span className="text-4xl text-primary-dark font-semibold font-primary text-center">
-                    Você ganhou{" "}
+                    Eu recebi{" "}
                     <span className="font-bold text-primary text-5xl smell-animation">
                       {calculateIntervalSalary()}
                     </span>{" "}
