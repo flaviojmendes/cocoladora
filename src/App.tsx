@@ -4,6 +4,12 @@ import "./App.css";
 import ReactGA from "react-ga4";
 
 function App() {
+  ReactGA.initialize(import.meta.env.VITE_GOOGLE_ANALYTICS_ID);
+  ReactGA.send({
+    hitType: "pageview",
+    page: window.location.pathname + window.location.search,
+  });
+
   const [salary, setSalary] = useState<string>(""); // Initialize as an empty string
   const [hourStarted, setHourStarted] = useState<string>(""); // Initialize as an empty string
   const [hourEnded, setHourEnded] = useState<string>(""); // Initialize as an empty string
@@ -44,13 +50,18 @@ function App() {
         link.href = canvas.toDataURL("image/png");
         link.click();
       });
+
+      ReactGA.send({
+        hitType: "download",
+        page: window.location.pathname + window.location.search,
+      });
     }
   };
 
   return (
     <div className="bg-secondary-light w-full h-full flex flex-col">
       <div className="flex grow">
-        <div className="flex flex-col lg:flex-row items-center mx-auto w-11/12 lg:w-2/3 h-fit gap-4 mt-20 bg-background py-10 px-2 lg:px-14 rounded-2xl border-4 border-primary">
+        <div className="flex flex-col lg:flex-row items-center mx-auto w-11/12 lg:w-2/3 h-fit gap-4 mt-4 lg:mt-20 bg-background py-10 px-2 lg:px-14 rounded-2xl border-4 border-primary">
           <div className="flex flex-col w-full lg:w-1/2">
             {/* Branding */}
             <div className="flex mx-auto items-end mb-6">
