@@ -44,7 +44,7 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
           lng: newLocation.longitude,
         });
       }
-    }, 5000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [props.locations]);
