@@ -41,20 +41,15 @@ function App() {
     const earnings = locations.reduce(
       (totals, loc) => {
         if (typeof loc.totalEarned === "string") {
-          const value = parseFloat(
-            (loc.totalEarned as string).replace(/[^\d.-]/g, "")
-          );
+          const valueString = loc.totalEarned as string;
+          let value = parseFloat(valueString.replace(/[^\d.-]/g, ""));
           if (!isNaN(value)) {
-            switch (currency) {
-              case "BRL":
-                totals.BRL += value;
-                break;
-              case "USD":
-                totals.USD += value;
-                break;
-              case "EUR":
-                totals.EUR += value;
-                break;
+            if (valueString.startsWith("R$")) {
+              totals.BRL += value;
+            } else if (valueString.startsWith("$")) {
+              totals.USD += value;
+            } else if (valueString.startsWith("€")) {
+              totals.EUR += value;
             }
           }
         }
@@ -250,9 +245,10 @@ function App() {
           <div className="h-full border-l-2 border-primary-dark my-10"></div>
           <div
             className={`flex flex-col mx-auto transition-all duration-1000 ${
-              showResult ? "opacity-100 scale-100 grow" : "opacity-0 scale-95 hidden"
+              showResult
+                ? "opacity-100 scale-100 grow"
+                : "opacity-0 scale-95 hidden"
             }`}
-            
           >
             {/* Display Interval Salary */}
             <div
@@ -267,15 +263,14 @@ function App() {
                 enquanto meditava no trono.
               </span>
               <img src="/caco.png" className="w-32 mt-4" />
-              
             </div>
             {/* Download Button */}
             <button
-                onClick={downloadImage}
-                className="mt-4 px-4 w-1/2 mx-auto py-2 text-2xl bg-primary font-secondary text-backgroun rounded-full shadow-lg hover:bg-primary-dark focus:outline-none text-background"
-              >
-                Baixar Certificado
-              </button>
+              onClick={downloadImage}
+              className="mt-4 px-4 w-1/2 mx-auto py-2 text-2xl bg-primary font-secondary text-backgroun rounded-full shadow-lg hover:bg-primary-dark focus:outline-none text-background"
+            >
+              Baixar Certificado
+            </button>
           </div>
         </div>
         <div className="flex"></div>
@@ -283,9 +278,9 @@ function App() {
       <h1 className="font-primary text-4xl justify-center text-center text-background my-4">
         Cocômetro
       </h1>
-      <div className="flex flex-col lg:flex-row items-center justify-center gap-6">
-        {currency === "BRL" && (
-          <h1 className="font-primary text-4xl justify-center text-center text-background my-4">
+      <div className="flex flex-row items-center justify-center gap-2 lg:gap-6">
+        {parseFloat(totalEarningsByCurrency.BRL.toFixed(2)) > 0 && (
+          <h1 className="font-primary text-3xl lg:text-4xl justify-center text-center text-background my-4">
             <span>
               R$
               <Odometer
@@ -295,20 +290,27 @@ function App() {
             </span>
           </h1>
         )}
-        {currency === "USD" && (
-          <h1 className="font-primary text-4xl justify-center text-center text-background my-4">
-            <span>
-              $
-              <Odometer
-                value={parseFloat(totalEarningsByCurrency.USD.toFixed(2))}
-                format="(.ddd),dd"
-              />
-            </span>
-          </h1>
+        {parseFloat(totalEarningsByCurrency.USD.toFixed(2)) > 0 && (
+          <span className=" text-3xl lg:text-4xl">💩</span>
         )}
-
-        {currency === "EUR" && (
-          <h1 className="font-primary text-4xl justify-center text-center text-background my-4">
+        {parseFloat(totalEarningsByCurrency.USD.toFixed(2)) > 0 && (
+          <>
+            <h1 className="font-primary text-3xl lg:text-4xl justify-center text-center text-background my-4">
+              <span>
+                $
+                <Odometer
+                  value={parseFloat(totalEarningsByCurrency.USD.toFixed(2))}
+                  format="(.ddd),dd"
+                />
+              </span>
+            </h1>
+          </>
+        )}
+        {parseFloat(totalEarningsByCurrency.EUR.toFixed(2)) > 0 && (
+          <span className="text-3xl lg:text-4xl">💩</span>
+        )}
+        {parseFloat(totalEarningsByCurrency.EUR.toFixed(2)) > 0 && (
+          <h1 className="font-primary text-3xl lg:text-4xl justify-center text-center text-background my-4">
             <span>
               €
               <Odometer
