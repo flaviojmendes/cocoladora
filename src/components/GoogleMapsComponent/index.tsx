@@ -20,38 +20,23 @@ export interface Location {
 
 interface GoogleMapComponentProps {
   locations: Location[];
+  fetchData: () => void;
 }
 
-interface GoogleMapComponentProps {
-  locations: { latitude: number; longitude: number; totalEarned: number }[];
-}
-
-function GoogleMapComponent(locationsReceived: GoogleMapComponentProps) {
+function GoogleMapComponent(props: GoogleMapComponentProps) {
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
 
-  const [locations, setLocations] = useState<Location[]>([]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(
-          "https://listlocationdata-k2ngx5ghxq-uc.a.run.app"
-        );
-        const data = await response.json();
-        setLocations(data);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-
-    fetchData();
+    props.fetchData();
   }, []);
+
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const randomIndex = Math.floor(Math.random() * locations.length);
-      const newLocation = locations[randomIndex];
+      const randomIndex = Math.floor(Math.random() * props.locations.length);
+      const newLocation = props.locations[randomIndex];
       setCurrentLocation(newLocation);
       if (mapRef.current) {
         mapRef.current.setCenter({
@@ -62,14 +47,19 @@ function GoogleMapComponent(locationsReceived: GoogleMapComponentProps) {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [locations]);
+  }, [props.locations]);
 
   return (
     <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
       <GoogleMap
         mapContainerStyle={containerStyle}
         center={center}
-        options={{ styles: mapStyles }}
+        options={{
+          styles: mapStyles,
+          disableDefaultUI: true, // Disable all controls
+          draggable: false, // Disable map dragging
+          scrollwheel: false, // Disable zooming with scroll wheel
+        }}
         zoom={10}
         onLoad={(map) => {
           mapRef.current = map;

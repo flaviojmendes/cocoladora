@@ -1,8 +1,10 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import html2canvas from "html2canvas";
 import "./App.css";
 import ReactGA from "react-ga4";
 import GoogleMapComponent, { Location } from "./components/GoogleMapsComponent";
+import Odometer from "react-odometerjs";
+import "odometer/themes/odometer-theme-minimal.css";
 
 function App() {
   ReactGA.initialize(import.meta.env.VITE_GOOGLE_ANALYTICS_ID);
@@ -17,6 +19,16 @@ function App() {
   const [currency, setCurrency] = useState<string>("BRL"); // Initialize as BRL (Brazilian Real)
   const [showResult, setShowResult] = useState(false);
   const [totalEarned, setTotalEarned] = useState<string>("");
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [totalEarningsByCurrency, setTotalEarningsByCurrency] = useState<{
+    BRL: number;
+    USD: number;
+    EUR: number;
+  }>({
+    BRL: 0,
+    USD: 0,
+    EUR: 0,
+  });
   const [location, setLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -25,7 +37,33 @@ function App() {
   const [isCalculating, setIsCalculating] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
 
-  const locations: Location[] = [];
+  const updateTotalEarningsByCurrency = (locations: Location[]) => {
+    const earnings = locations.reduce(
+      (totals, loc) => {
+        if (typeof loc.totalEarned === "string") {
+          const value = parseFloat(
+            (loc.totalEarned as string).replace(/[^\d.-]/g, "")
+          );
+          if (!isNaN(value)) {
+            switch (currency) {
+              case "BRL":
+                totals.BRL += value;
+                break;
+              case "USD":
+                totals.USD += value;
+                break;
+              case "EUR":
+                totals.EUR += value;
+                break;
+            }
+          }
+        }
+        return totals;
+      },
+      { BRL: 0, USD: 0, EUR: 0 }
+    );
+    setTotalEarningsByCurrency(earnings);
+  };
 
   const handleCalculate = () => {
     setIsCalculating(true); // Set to true when calculation starts
@@ -60,6 +98,7 @@ function App() {
           });
 
         setShowResult(true);
+        fetchData();
       },
       (error) => {
         console.error("Error getting geolocation: ", error);
@@ -114,11 +153,24 @@ function App() {
     }
   };
 
+  const fetchData = async () => {
+    try {
+      const response = await fetch(
+        "https://listlocationdata-k2ngx5ghxq-uc.a.run.app"
+      );
+      const data = await response.json();
+      setLocations(data);
+      updateTotalEarningsByCurrency(data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+
   return (
-    <div className="bg-secondary-light w-full h-full flex flex-col relative">
-      <div className="flex grow">
-        <div className="z-10 flex flex-col lg:flex-row items-center mx-auto w-11/12 lg:w-2/3 h-fit gap-4 mt-4 lg:mt-20 bg-background py-10 px-2 lg:px-14 rounded-2xl border-4 border-primary">
-          <div className="flex flex-col w-full lg:w-1/2">
+    <div className="bg-secondary-light w-full h-full flex flex-col">
+      <div className="flex">
+        <div className="flex flex-col lg:flex-row items-center mx-auto w-11/12 lg:w-4/5 h-fit gap-4  bg-background py-5 px-2 lg:px-14 rounded-2xl border-4 border-primary shadow-md shadow-secondary border-t-0 rounded-t-none">
+          <div className="flex flex-col w-full lg:w-1/2 mx-auto transition-all grow duration-1000">
             {/* Branding */}
             <div className="flex mx-auto items-end mb-6">
               <img src="/caco.png" className="w-24 lg:w-32" />
@@ -153,39 +205,40 @@ function App() {
                 </div>
               </div>
 
-              {/* Hour Started */}
-              <div className="flex flex-col">
-                <span className="text-xl mx-auto text-primary-dark font-semibold font-secondary">
-                  Que horas começou?
-                </span>
-                <input
-                  type="time"
-                  value={hourStarted}
-                  onChange={(e) => setHourStarted(e.target.value)}
-                  placeholder="Que horas começou?"
-                  className="w-full px-6 py-3 text-lg text-center text-primary-dark font-semibold bg-white border-4 border-black rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50 focus:ring-primary placeholder-secondary-light placeholder-opacity-80"
-                />
-              </div>
+              <div className="flex flex-col lg:flex-row w-full lg:gap-4">
+                {/* Hour Started */}
+                <div className="flex flex-col grow">
+                  <span className="text-xl mx-auto text-primary-dark font-semibold font-secondary">
+                    Que horas começou o 💩?
+                  </span>
+                  <input
+                    type="time"
+                    value={hourStarted}
+                    onChange={(e) => setHourStarted(e.target.value)}
+                    placeholder="Que horas começou?"
+                    className="w-full px-6 py-3 text-lg text-center text-primary-dark font-semibold bg-white border-4 border-primary-dark rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 focus:ring-primary placeholder-secondary-light placeholder-opacity-80"
+                  />
+                </div>
 
-              {/* Hour Ended */}
-              <div className="flex flex-col">
-                <span className="text-xl mx-auto text-primary-dark font-semibold font-secondary">
-                  Que horas terminou?
-                </span>
-                <input
-                  type="time"
-                  value={hourEnded}
-                  onChange={(e) => setHourEnded(e.target.value)}
-                  placeholder="Que horas terminou?"
-                  className="w-full px-6 py-3 text-lg text-center text-primary-dark font-semibold bg-white border-4 border-black rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50 focus:ring-primary placeholder-secondary-light placeholder-opacity-80"
-                />
+                {/* Hour Ended */}
+                <div className="flex flex-col grow">
+                  <span className="text-xl mx-auto text-primary-dark font-semibold font-secondary">
+                    Que horas terminou o 💩?
+                  </span>
+                  <input
+                    type="time"
+                    value={hourEnded}
+                    onChange={(e) => setHourEnded(e.target.value)}
+                    placeholder="Que horas terminou?"
+                    className="w-full px-6 py-3 text-lg text-center text-primary-dark font-semibold bg-white border-4 border-primary-dark rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50 focus:ring-primary placeholder-secondary-light placeholder-opacity-80"
+                  />
+                </div>
               </div>
-
               {/* Calculate Button */}
               <button
                 onClick={handleCalculate}
                 disabled={isCalculating}
-                className={`mt-4 px-4 py-2 text-2xl bg-primary font-secondary text-background text-white rounded-full shadow-lg hover:bg-primary-dark focus:outline-none ${
+                className={`mt-4 px-4 py-2 text-2xl bg-primary font-secondary text-background rounded-full shadow-lg hover:bg-primary-dark focus:outline-none ${
                   isCalculating ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
@@ -193,51 +246,82 @@ function App() {
               </button>
             </div>
           </div>
+
           <div className="h-full border-l-2 border-primary-dark my-10"></div>
-          <div className="flex flex-col mx-auto">
+          <div
+            className={`flex flex-col mx-auto transition-all duration-1000 ${
+              showResult ? "opacity-100 scale-100 grow" : "opacity-0 scale-95 hidden"
+            }`}
+            
+          >
             {/* Display Interval Salary */}
             <div
-              className="flex flex-col items-center justify-center w-64 h-64 bg-background"
+              className="flex mx-auto flex-col items-center justify-center w-64 h-64 bg-background py-4"
               ref={resultRef}
             >
-              {showResult &&
-                (totalEarned === "0" || totalEarned === "" ? (
-                  <span className="text-4xl text-primary-dark font-semibold font-primary text-center">
-                    Preencha os valores pra descobrir quanto você ganhou
-                  </span>
-                ) : (
-                  <>
-                    <span className="text-4xl text-primary-dark font-semibold font-primary text-center">
-                      Eu recebi{" "}
-                      <span className="font-bold text-primary text-5xl smell-animation">
-                        {totalEarned}
-                      </span>{" "}
-                      enquanto meditava no trono.
-                    </span>
-                    <img src="/caco.png" className="w-32 mt-4" />
-                    {/* Download Button */}
-                    <button
-                      onClick={downloadImage}
-                      className="mt-4 px-4 py-2 text-2xl bg-primary font-secondary text-backgroun rounded-full shadow-lg hover:bg-primary-dark focus:outline-none"
-                    >
-                      Baixar Certificado
-                    </button>
-                  </>
-                ))}
-              {!showResult && (
-                <span className="text-4xl text-primary-dark font-semibold font-primary text-center">
-                  Preencha os valores pra descobrir quanto você ganhou
-                </span>
-              )}
+              <span className="text-4xl text-primary-dark font-semibold font-primary text-center">
+                Eu recebi{" "}
+                <span className="font-bold text-primary text-5xl ">
+                  {totalEarned}
+                </span>{" "}
+                enquanto meditava no trono.
+              </span>
+              <img src="/caco.png" className="w-32 mt-4" />
+              
             </div>
+            {/* Download Button */}
+            <button
+                onClick={downloadImage}
+                className="mt-4 px-4 w-1/2 mx-auto py-2 text-2xl bg-primary font-secondary text-backgroun rounded-full shadow-lg hover:bg-primary-dark focus:outline-none text-background"
+              >
+                Baixar Certificado
+              </button>
           </div>
         </div>
         <div className="flex"></div>
       </div>
+      <h1 className="font-primary text-4xl justify-center text-center text-background my-4">
+        Cocômetro
+      </h1>
+      <div className="flex items-center justify-center gap-6">
+        {currency === "BRL" && (
+          <h1 className="font-primary text-4xl justify-center text-center text-background my-4">
+            <span>
+              R$
+              <Odometer
+                value={parseFloat(totalEarningsByCurrency.BRL.toFixed(2))}
+                format="(.ddd),dd"
+              />
+            </span>
+          </h1>
+        )}
+        {currency === "USD" && (
+          <h1 className="font-primary text-4xl justify-center text-center text-background my-4">
+            <span>
+              $
+              <Odometer
+                value={parseFloat(totalEarningsByCurrency.USD.toFixed(2))}
+                format="(.ddd),dd"
+              />
+            </span>
+          </h1>
+        )}
 
+        {currency === "EUR" && (
+          <h1 className="font-primary text-4xl justify-center text-center text-background my-4">
+            <span>
+              €
+              <Odometer
+                value={parseFloat(totalEarningsByCurrency.EUR.toFixed(2))}
+                format="(.ddd),dd"
+              />
+            </span>
+          </h1>
+        )}
+      </div>
       {/* Google Map Component */}
-      <div className="mt-0 -top-[20%] relative w-full z-0 bg-background bg-opacity-50">
-        <GoogleMapComponent locations={locations} />
+      <div className="mt-0   z-0 bg-background bg-opacity-50">
+        <GoogleMapComponent fetchData={fetchData} locations={locations} />
       </div>
 
       <footer className="flex w-full text-background font-primary text-center py-2 sticky text-3xl items-end">
