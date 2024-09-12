@@ -283,7 +283,7 @@ function App() {
       <h1 className="font-primary text-4xl justify-center text-center text-background my-4">
         Cocômetro
       </h1>
-      <div className="flex items-center justify-center gap-6">
+      <div className="flex flex-col lg:flex-row items-center justify-center gap-6">
         {currency === "BRL" && (
           <h1 className="font-primary text-4xl justify-center text-center text-background my-4">
             <span>
