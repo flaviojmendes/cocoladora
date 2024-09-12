@@ -1,5 +1,5 @@
 {
-  "name": "meu-app-frontend",
+  "name": "cocoladora",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@auth0/auth0-react": "^1.10.2",
+    "@react-google-maps/api": "^2.19.3",
     "autoprefixer": "^10.4.13",
     "html2canvas": "^1.4.1",
     "postcss": "^8.4.21",

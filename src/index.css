@@ -2,61 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
-
-html, body, #root {
-    height: 100%;
-    background-color: #413831;
+html,
+body,
+#root {
+  height: 100%;
+  background-color: #413831;
 }
 
-
-
-.smell-animation {
-    position: relative;
-    display: inline-block;
-  }
-  
-  .smell-animation::before,
-  .smell-animation::after {
-    content: '';
-    position: absolute;
-    width: 10px;
-    height: 30px;
-    background: rgba(255, 255, 255, 0.5); /* Steam color */
-    border-radius: 50%;
-    animation: steam 3s infinite ease-in-out;
-  }
-  
-  .smell-animation::before {
-    left: -10px;
-    top: -20px;
-    animation-delay: 0.2s;
-  }
-  
-  .smell-animation::after {
-    right: -10px;
-    top: -20px;
-    animation-delay: 0.4s;
-  }
-  
-  @keyframes steam {
-    0% {
-      transform: translateY(0) scale(1);
-      opacity: 0.5;
-    }
-    25% {
-      transform: translateY(-10px) scale(1.2);
-      opacity: 0.4;
-    }
-    50% {
-      transform: translateY(-20px) scale(1.4);
-      opacity: 0.3;
-    }
-    75% {
-      transform: translateY(-30px) scale(1.6);
-      opacity: 0.2;
-    }
-    100% {
-      transform: translateY(-40px) scale(1.8);
-      opacity: 0.1;
-    }
-  }
+.gradient-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 1)
+  );
+  pointer-events: none; /* Ensure the overlay doesn't block map interactions */
+}
