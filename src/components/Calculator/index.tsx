@@ -154,8 +154,8 @@ export function Calculator(props: CalculatorProps) {
       <div className="flex flex-col w-full lg:w-1/2 mx-auto transition-all grow duration-1000">
         {/* Branding */}
 
-        <div className="flex grow mb-6">
-          <div className="flex grow"></div>
+        <div className="flex flex-col-reverse lg:flex-row grow mb-6">
+          <div className="grow hidden lg:flex"></div>
           <div className="flex items-end">
             <img src="/caco.png" className="w-24 lg:w-32" />
             <h1 className="text-4xl lg:text-6xl font-bold ml-4 font-primary text-primary-dark">
@@ -167,24 +167,25 @@ export function Calculator(props: CalculatorProps) {
             <span
               className={`${
                 showHistory ? "hidden" : ""
-              } text-xl font-secondary text-primary-dark flex items-center gap-2 hover:font-semibold hover:cursor-pointer hover:text-secondary-light`}
+              } text-lg lg:text-xl font-secondary text-primary-dark flex items-center gap-2 hover:font-semibold hover:cursor-pointer hover:text-secondary-light`}
             >
               <FaHistory />
               <span onClick={() => setShowHistory(!showHistory)}>
                 Meu Histórico
               </span>
             </span>
-          </div>
-          <span
+            <span
             className={`${
               !showHistory ? "hidden" : ""
-            } text-xl font-secondary text-primary-dark flex items-center gap-2 hover:font-semibold hover:cursor-pointer hover:text-secondary-light`}
-          >
+            } text-lg lg:text-xl font-secondary text-primary-dark flex items-center gap-2 hover:font-semibold hover:cursor-pointer hover:text-secondary-light`}
+            >
             <FaRegWindowClose />
             <span onClick={() => setShowHistory(!showHistory)}>
               Fechar Histórico
             </span>
           </span>
+          </div>
+          
         </div>
 
         {/* Calculation */}
@@ -272,7 +273,7 @@ export function Calculator(props: CalculatorProps) {
                 (location: Location, index: number) => (
                   <div
                     key={index}
-                    className="flex flex-col items-start gap-2 px-2 min-w-52 bg-primary rounded-md w-fit border-2 border-primary-dark text-white relative"
+                    className="flex flex-col items-start gap-2 px-2 min-w-52 bg-primary rounded-md w-full lg:w-fit border-2 border-primary-dark text-white relative"
                   >
                     {/* Remove from history */}
                     <span className="text-lg font-secondary flex items-center gap-2 absolute top-2 right-2 cursor-pointer hover:text-background">
