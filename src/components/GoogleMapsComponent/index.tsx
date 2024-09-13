@@ -15,22 +15,21 @@ const center = {
 export interface Location {
   latitude: number;
   longitude: number;
-  totalEarned: number;
+  totalEarned: number | string;
+  timeStarted?: string;
+  timeEnded?: string;
+  day?: string;
+  city?: string;
 }
 
 interface GoogleMapComponentProps {
   locations: Location[];
-  fetchData: () => void;
 }
 
 function GoogleMapComponent(props: GoogleMapComponentProps) {
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
 
-
-  useEffect(() => {
-    props.fetchData();
-  }, []);
 
 
   useEffect(() => {
