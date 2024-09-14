@@ -9,6 +9,7 @@ import {
   FaRegWindowClose,
 } from "react-icons/fa";
 import { Location } from "../GoogleMapsComponent";
+import { Cocometer } from "../Cocometer";
 
 interface CalculatorProps {
   fetchData: () => void;
@@ -132,6 +133,7 @@ export function Calculator(props: CalculatorProps) {
       }
     );
   };
+  
 
   const downloadImage = () => {
     if (resultRef.current) {
@@ -268,7 +270,7 @@ export function Calculator(props: CalculatorProps) {
             Meu Histórico de 💩💩💩
           </h2>
           <div className="flex flex-wrap gap-4 w-full">
-            {localStorage.getItem("locations") ? (
+            {localStorage.getItem("locations") && JSON.parse(localStorage.getItem("locations") || "[]").length > 0 ? (
               JSON.parse(localStorage.getItem("locations") || "[]").map(
                 (location: Location, index: number) => (
                   <div
@@ -312,7 +314,9 @@ export function Calculator(props: CalculatorProps) {
               </span>
             )}
           </div>
-          
+          <h2 className="text-primary-dark font-primary text-3xl mx-auto">
+            <Cocometer title="Eu já ganhei:" locations={JSON.parse(localStorage.getItem("locations") || "[]")} />
+          </h2>
         </div>
       </div>
 
