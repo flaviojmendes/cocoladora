@@ -212,10 +212,22 @@ export function Calculator(props: CalculatorProps) {
               </select>
               <input
                 value={salary}
-                onChange={(e) => setSalary(e.target.value)}
+                onChange={(e) => {
+                    const value = parseInt(e.target.value, 10);
+                    
+                    if (value > 99999) {
+                      setSalary("99999");
+                    } else if (value < 1) {
+                      setSalary("1");
+                    } else {
+                      setSalary(e.target.value);
+                    }
+                  }}
                 type="number"
+                max={99999}
+                min={1}
                 placeholder="Quanto você ganha por mês?"
-                className="w-full px-6 py-3 text-lg text-gray-700 bg-white border-l-4 border-primary-dark rounded-r-full focus:outline-none placeholder-primary placeholder-opacity-80"
+                className="w-full px-6 py-3 text-lg font-semibold  text-secondary bg-white border-l-4 border-primary-dark rounded-r-full focus:outline-none placeholder-primary placeholder-opacity-80"
               />
             </div>
           </div>
