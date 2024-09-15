@@ -57,8 +57,8 @@ function App() {
       <footer className="flex w-full text-background font-primary text-center py-2 sticky text-3xl items-end">
         <div className="flex mx-auto items-center">
           <span>Feito com 💩 por</span>
-          <a target="_blank" href="https://instagram.com/trilhainfo">
-            <img src="/trilhainfo.png" className="w-48" />
+          <a target="_blank" href="https://instagram.com/trilhainfo" className="cursor-pointer">
+            <img src="/trilhainfo.png" className="w-48 cursor-pointer" />
           </a>
         </div>
       </footer>

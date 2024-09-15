@@ -3,6 +3,8 @@ import { useRef, useState } from "react";
 import ReactGA from "react-ga4";
 import {
   FaHistory,
+  FaInstagram,
+  FaInstagramSquare,
   FaMapPin,
   FaMoneyBillWave,
   FaPoop,
@@ -164,14 +166,21 @@ export function Calculator(props: CalculatorProps) {
         {/* Branding */}
 
         <div className="flex flex-col-reverse lg:flex-row grow mb-6">
-          <div className="grow hidden lg:flex"></div>
-          <div className="flex items-end">
+          <div className="grow hidden lg:flex items-center">
+            <a href="https://instagram.com/trilhainfo" target="_blank">
+              <FaInstagram className="text-3xl lg:text-4xl cursor-pointer z-30" />
+            </a>
+          </div>
+          <div className="flex items-end w-fit mx-auto">
             <img src="/caco.png" className="w-24 lg:w-32" />
             <h1 className="text-4xl lg:text-6xl font-bold ml-4 font-primary text-primary-dark">
               Cocoladora
             </h1>
           </div>
           <div className="flex grow  ">
+            <a href="https://instagram.com/trilhainfo" target="_blank" className="lg:hidden">
+              <FaInstagram className="text-4xl cursor-pointer z-30" />
+            </a>
             <div className="flex-grow"></div>
             <span
               className={`${
