@@ -59,6 +59,13 @@ export function Calculator(props: CalculatorProps) {
 
   const handleCalculate = () => {
     setIsCalculating(true); // Set to true when calculation starts
+
+    ReactGA.event({
+      category: "Calculate",
+      action: "Calculate Poop",
+      label: window.location.pathname + window.location.search,
+    });
+
     const earned = calculateIntervalSalary();
 
     navigator.geolocation.getCurrentPosition(
@@ -133,20 +140,20 @@ export function Calculator(props: CalculatorProps) {
       }
     );
   };
-  
 
   const downloadImage = () => {
     if (resultRef.current) {
+      ReactGA.event({
+        category: "Download",
+        action: "Download Image",
+        label: window.location.pathname + window.location.search,
+      });
+
       html2canvas(resultRef.current).then((canvas) => {
         const link = document.createElement("a");
         link.download = "result.png";
         link.href = canvas.toDataURL("image/png");
         link.click();
-      });
-
-      ReactGA.send({
-        hitType: "download",
-        page: window.location.pathname + window.location.search,
       });
     }
   };
@@ -177,17 +184,16 @@ export function Calculator(props: CalculatorProps) {
               </span>
             </span>
             <span
-            className={`${
-              !showHistory ? "hidden" : ""
-            } text-lg lg:text-xl font-secondary text-primary-dark flex items-center gap-2 hover:font-semibold hover:cursor-pointer hover:text-secondary-light`}
+              className={`${
+                !showHistory ? "hidden" : ""
+              } text-lg lg:text-xl font-secondary text-primary-dark flex items-center gap-2 hover:font-semibold hover:cursor-pointer hover:text-secondary-light`}
             >
-            <FaRegWindowClose />
-            <span onClick={() => setShowHistory(!showHistory)}>
-              Fechar Histórico
+              <FaRegWindowClose />
+              <span onClick={() => setShowHistory(!showHistory)}>
+                Fechar Histórico
+              </span>
             </span>
-          </span>
           </div>
-          
         </div>
 
         {/* Calculation */}
@@ -213,16 +219,15 @@ export function Calculator(props: CalculatorProps) {
               <input
                 value={salary}
                 onChange={(e) => {
-                    const value = parseInt(e.target.value, 10);
-                    
-                    if (value > 99999) {
-                      setSalary("99999");
-                    } else if (value < 1) {
-                      setSalary("1");
-                    } else {
-                      setSalary(e.target.value);
-                    }
-                  }}
+                  const value = parseInt(e.target.value, 10);
+
+                  if (value > 99999) {
+                  } else if (value < 1) {
+                    setSalary("1");
+                  } else {
+                    setSalary(e.target.value);
+                  }
+                }}
                 type="number"
                 max={99999}
                 min={1}
@@ -282,7 +287,8 @@ export function Calculator(props: CalculatorProps) {
             Meu Histórico de 💩💩💩
           </h2>
           <div className="flex flex-wrap gap-4 w-full">
-            {localStorage.getItem("locations") && JSON.parse(localStorage.getItem("locations") || "[]").length > 0 ? (
+            {localStorage.getItem("locations") &&
+            JSON.parse(localStorage.getItem("locations") || "[]").length > 0 ? (
               JSON.parse(localStorage.getItem("locations") || "[]").map(
                 (location: Location, index: number) => (
                   <div
@@ -327,7 +333,10 @@ export function Calculator(props: CalculatorProps) {
             )}
           </div>
           <h2 className="text-primary-dark font-primary text-3xl mx-auto">
-            <Cocometer title="Eu já ganhei:" locations={JSON.parse(localStorage.getItem("locations") || "[]")} />
+            <Cocometer
+              title="Eu já ganhei:"
+              locations={JSON.parse(localStorage.getItem("locations") || "[]")}
+            />
           </h2>
         </div>
       </div>

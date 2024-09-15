@@ -10,9 +10,10 @@ import { Cocometer } from "./components/Cocometer";
 
 function App() {
   ReactGA.initialize(import.meta.env.VITE_GOOGLE_ANALYTICS_ID);
-  ReactGA.send({
-    hitType: "pageview",
-    page: window.location.pathname + window.location.search,
+  ReactGA.event({
+    category: "Access",
+    action: "Accessed page",
+    label: window.location.pathname + window.location.search,
   });
 
   const [locations, setLocations] = useState<Location[]>([]);
