@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Location } from "../GoogleMapsComponent";
+import { Location } from "../../entities/Location";
 import Odometer from "react-odometerjs";
+import "odometer/themes/odometer-theme-car.css";
 
 type CocometerProps = {
   locations: Location[];
@@ -52,44 +53,38 @@ export function Cocometer(props: CocometerProps) {
       </h1>
       <div className="flex flex-row items-center justify-center gap-2 lg:gap-6">
         {parseFloat(totalEarningsByCurrency.BRL.toFixed(2)) > 0 && (
-          <h1 className="font-primary text-3xl lg:text-4xl justify-center text-center my-4">
-            <span>
-              R$
-              <Odometer
-                value={parseFloat(totalEarningsByCurrency.BRL.toFixed(2))}
-                format="(.ddd),dd"
-              />
-            </span>
+          <h1 className="font-primary text-3xl lg:text-4xl justify-center text-center my-4 flex gap-2 items-center">
+            <span>R$</span>
+            <Odometer
+              value={parseFloat(totalEarningsByCurrency.BRL.toFixed(2))}
+              format="(.ddd),dd"
+            />
           </h1>
         )}
-        {parseFloat(totalEarningsByCurrency.USD.toFixed(2)) > 0 && (
+        {/* {parseFloat(totalEarningsByCurrency.USD.toFixed(2)) > 0 && (
           <span className=" text-3xl lg:text-4xl">💩</span>
-        )}
+        )} */}
         {parseFloat(totalEarningsByCurrency.USD.toFixed(2)) > 0 && (
           <>
-            <h1 className="font-primary text-3xl lg:text-4xl justify-center text-center my-4">
-              <span>
-                $
-                <Odometer
-                  value={parseFloat(totalEarningsByCurrency.USD.toFixed(2))}
-                  format="(.ddd),dd"
-                />
-              </span>
+            <h1 className="font-primary text-3xl lg:text-4xl justify-center text-center my-4 flex gap-2 items-center">
+              <span>$</span>
+              <Odometer
+                value={parseFloat(totalEarningsByCurrency.USD.toFixed(2))}
+                format="(.ddd),dd"
+              />
             </h1>
           </>
         )}
-        {parseFloat(totalEarningsByCurrency.EUR.toFixed(2)) > 0 && (
+        {/* {parseFloat(totalEarningsByCurrency.EUR.toFixed(2)) > 0 && (
           <span className="text-3xl lg:text-4xl">💩</span>
-        )}
+        )} */}
         {parseFloat(totalEarningsByCurrency.EUR.toFixed(2)) > 0 && (
-          <h1 className="font-primary text-3xl lg:text-4xl justify-center text-center my-4">
-            <span>
-              €
-              <Odometer
-                value={parseFloat(totalEarningsByCurrency.EUR.toFixed(2))}
-                format="(.ddd),dd"
-              />
-            </span>
+          <h1 className="font-primary text-3xl lg:text-4xl justify-center text-center my-4 flex gap-2 items-center">
+            <span>€</span>
+            <Odometer
+              value={parseFloat(totalEarningsByCurrency.EUR.toFixed(2))}
+              format="(.ddd),dd"
+            />
           </h1>
         )}
       </div>
