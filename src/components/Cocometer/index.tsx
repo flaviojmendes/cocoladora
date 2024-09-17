@@ -51,7 +51,7 @@ export function Cocometer(props: CocometerProps) {
       <h1 className="font-primary text-4xl justify-center text-center  my-4">
         {props.title}
       </h1>
-      <div className="flex flex-row items-center justify-center gap-2 lg:gap-6">
+      <div className="flex flex-col lg:flex-row items-center justify-center gap-2 lg:gap-6">
         {parseFloat(totalEarningsByCurrency.BRL.toFixed(2)) > 0 && (
           <h1 className="font-primary text-3xl lg:text-4xl justify-center text-center my-4 flex gap-2 items-center">
             <span>R$</span>

@@ -30,19 +30,23 @@ function App() {
     totalEarned: string | number;
   } | null>(null);
 
+
+  useEffect(() => {
+    fetchCocometerData();
+  }, []);
   
 
-  // const fetchCocometerData = async () => {
-  //   try {
-  //     const response = await fetch(
-  //       "https://listlocationdata-k2ngx5ghxq-uc.a.run.app"
-  //     );
-  //     const data = await response.json();
-  //     setLocations(data);
-  //   } catch (error) {
-  //     console.error("Error fetching data:", error);
-  //   }
-  // };
+  const fetchCocometerData = async () => {
+    try {
+      const response = await fetch(
+        "https://listlocationdata-k2ngx5ghxq-uc.a.run.app"
+      );
+      const data = await response.json();
+      setLocations(data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
 
   return (
     <div className="bg-secondary-light w-full h-full flex flex-col">
@@ -92,9 +96,9 @@ function App() {
       <div className="mt-0   z-0 bg-background bg-opacity-50">
         <GoogleMapComponent />
       </div>
-      {/* <div className="text-background">
+      <div className="text-background">
         <Cocometer title="Cocômetro" locations={locations} />
-      </div> */}
+      </div>
       <footer className="flex w-full text-background font-primary text-center py-2 sticky text-3xl items-end">
         <div className="flex mx-auto items-center">
           <span>Feito com 💩 por</span>
