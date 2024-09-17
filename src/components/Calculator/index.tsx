@@ -359,14 +359,14 @@ export function Calculator(props: CalculatorProps) {
                 </span>
               )}
             </div>
-            <h2 className="text-primary-dark font-primary text-3xl mx-auto">
+            <div className="text-primary-dark font-primary text-3xl mx-auto">
               <Cocometer
                 title="Eu já ganhei:"
                 locations={JSON.parse(
                   localStorage.getItem("locations") || "[]"
                 )}
               />
-            </h2>
+            </div>
           </div>
         </div>
 

@@ -1,17 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, useMap, useMapEvent } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMap,
+  useMapEvent,
+} from "react-leaflet";
 import L from "leaflet";
 import { Place } from "../../entities/Place";
 import "leaflet/dist/leaflet.css";
 import { Modal } from "../Modal";
-import { zIndex } from "html2canvas/dist/types/css/property-descriptors/z-index";
+import { Location } from "../../entities/Location";
+import { FaCheckSquare, FaSquare } from "react-icons/fa";
 
 const containerStyle = {
   width: "100%",
   height: "600px",
   zIndex: 0,
 };
-
 
 function SetViewOnClick({ coords }: { coords: { lat: number; lng: number } }) {
   const map = useMap();
@@ -21,19 +27,29 @@ function SetViewOnClick({ coords }: { coords: { lat: number; lng: number } }) {
   return null;
 }
 
-function GoogleMapComponent() {
+interface GoogleMapComponentProps {
+  locations: Location[];
+}
+
+function GoogleMapComponent(props: GoogleMapComponentProps) {
   const [currentLocation, setCurrentLocation] = useState<Place | null>(null);
   const [userLocation, setUserLocation] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
   const [places, setPlaces] = useState<{ [key: string]: Place }>();
-  const [clickedLocation, setClickedLocation] = useState<Place | null>(null);
+  const [clickedLocation, setClickedLocation] = useState<
+    Place | Location | null
+  >(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [displayMarkers, setDisplayMarkers] = useState({
+    calculated: true,
+    rated: true,
+  });
 
   const customIcon = new L.Icon({
     iconUrl: "/sam.png", // Replace with the path to your custom icon
-    iconSize: [50, 50], // Adjust the size as needed
+    iconSize: [30, 30], // Adjust the size as needed
     iconAnchor: [25, 50], // Adjust the anchor point as needed
   });
 
@@ -83,8 +99,16 @@ function GoogleMapComponent() {
     setClickedLocation(null);
   };
 
-  const MapClickHandler = ({ setClickedLocation, setIsModalOpen }: { setClickedLocation: (location: { latitude: number; longitude: number } | null) => void, setIsModalOpen: (isOpen: boolean) => void }) => {
-    useMapEvent('click', (event) => {
+  const MapClickHandler = ({
+    setClickedLocation,
+    setIsModalOpen,
+  }: {
+    setClickedLocation: (
+      location: { latitude: number; longitude: number } | null
+    ) => void;
+    setIsModalOpen: (isOpen: boolean) => void;
+  }) => {
+    useMapEvent("click", (event) => {
       setClickedLocation({
         latitude: event.latlng.lat,
         longitude: event.latlng.lng,
@@ -94,8 +118,48 @@ function GoogleMapComponent() {
     return null;
   };
 
+  const isPlace = (location: Place | Location | null): location is Place => {
+    return location !== null && (location as Place).name !== undefined;
+  };
+
+  const isLocation = (
+    location: Place | Location | null
+  ): location is Location => {
+    return location !== null && (location as Location).city !== undefined;
+  };
+
   return (
-    <div>
+    <div className="mt-10">
+      <div className="flex flex-col bg-background py-6de">
+        <h1 className="text-4xl font-primary text-secondary font-bold text-center mt-10">
+          Explore
+        </h1>
+        <div className="flex items-center justify-center gap-4 py-10">
+          <button
+            onClick={() =>
+              setDisplayMarkers({
+                calculated: !displayMarkers.calculated,
+                rated: displayMarkers.rated,
+              })
+            }
+            className="border-2 border-secondary bg-secondary-light items-center gap-2 text-background p-2 rounded-md flex font-bold text-2xl"
+          >
+            {displayMarkers.calculated ? <FaCheckSquare/> : <FaSquare/>} <img src="/caco.png" className="w-16 h-16" /> 
+            
+          </button>
+          <button
+            onClick={() =>
+              setDisplayMarkers({
+                calculated: displayMarkers.calculated,
+                rated: !displayMarkers.rated,
+              })
+            }
+            className="border-2 border-secondary bg-secondary-light items-center gap-2 text-background p-2 rounded-md flex font-bold text-2xl"
+          >
+            {displayMarkers.rated ? <FaCheckSquare/> : <FaSquare/>} <img src="/sam.png" className="w-16 h-16" />
+          </button>
+        </div>
+      </div>
       <MapContainer
         style={containerStyle}
         center={center}
@@ -108,6 +172,7 @@ function GoogleMapComponent() {
         />
         {userLocation && <SetViewOnClick coords={userLocation} />}
         {places &&
+          displayMarkers.rated &&
           Object.keys(places).map((key) => {
             return (
               <Marker
@@ -127,9 +192,36 @@ function GoogleMapComponent() {
               />
             );
           })}
+        {places &&
+          displayMarkers.calculated &&
+          props.locations.map((location: Location) => {
+            const customPoopIcon = new L.Icon({
+              iconUrl: "/caco.png", // Replace with the path to your custom icon
+              iconSize: [30, 30], // Adjust the size as needed
+              iconAnchor: [25, 50], // Adjust the anchor point as needed
+            });
+
+            return (
+              <Marker
+                key={`${location.latitude}, ${location.longitude} ${Math.random()}`}
+                position={{
+                  lat: location.latitude,
+                  lng: location.longitude,
+                }}
+                icon={customPoopIcon}
+                eventHandlers={{
+                  click: () => {
+                    setCurrentLocation(location);
+                    setClickedLocation(location);
+                    setIsModalOpen(true);
+                  },
+                }}
+              />
+            );
+          })}
       </MapContainer>
       <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
-        {clickedLocation && (
+        {clickedLocation && isPlace(clickedLocation) && (
           <div className="bg-background text-secondary font-secondary flex flex-col">
             <div className="flex flex-col items-center justify-between">
               <h1 className="text-4xl font-primary text-secondary font-bold">
@@ -157,12 +249,52 @@ function GoogleMapComponent() {
               </div>
 
               <div className="flex flex-col mt-10 w-full">
-                <span className="text-2xl font-bold text-center">Comentários: </span>
+                <span className="text-2xl font-bold text-center">
+                  Comentários:{" "}
+                </span>
                 {clickedLocation.notes &&
                   Array.isArray(clickedLocation.notes) &&
                   clickedLocation.notes.map((note) => (
-                    <span className="text-lg font-bold "><span className="text-secondary-light text-opacity-80">Anônimo:</span> {note}</span>
+                    <span className="text-lg font-bold ">
+                      <span className="text-secondary-light text-opacity-80">
+                        Anônimo:
+                      </span>{" "}
+                      {note}
+                    </span>
                   ))}
+              </div>
+            </div>
+          </div>
+        )}
+        {clickedLocation && isLocation(clickedLocation) && (
+          <div>
+            <div className="bg-background text-secondary font-secondary flex flex-col">
+              <div className="flex flex-col items-center justify-between">
+                <h1 className="text-4xl font-primary text-secondary font-bold">
+                  {clickedLocation.city}
+                </h1>
+              </div>
+
+              <div className="grid grid-cols-2 gap-28 mt-12">
+                <div className="flex flex-col text-right">
+                  <span className="text-2xl text-secondary ">Início</span>
+                  <span className="text-xl text-secondary-light">
+                    {clickedLocation.timeStarted}
+                  </span>
+                </div>
+                <div className="flex flex-col text-start">
+                  <span className="text-2xl text-secondary ">Fim</span>
+                  <span className="text-xl text-secondary-light">
+                    {clickedLocation.timeEnded}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-col text-center mt-10">
+                <span className="text-2xl text-secondary ">Total Ganho</span>
+                <span className="text-xl text-secondary-light">
+                  {clickedLocation.totalEarned}
+                </span>
               </div>
             </div>
           </div>

@@ -30,11 +30,9 @@ function App() {
     totalEarned: string | number;
   } | null>(null);
 
-
   useEffect(() => {
     fetchCocometerData();
   }, []);
-  
 
   const fetchCocometerData = async () => {
     try {
@@ -90,11 +88,9 @@ function App() {
       </div>
 
       {/* Google Map Component */}
-      <h1 className="font-primary text-4xl justify-center text-center text-background my-4">
-        Veja o que estão falando sobre os banheiros públicos da sua cidade!
-      </h1>
-      <div className="mt-0   z-0 bg-background bg-opacity-50">
-        <GoogleMapComponent />
+
+      <div className="mt-0 z-0">
+        <GoogleMapComponent locations={locations} />
       </div>
       <div className="text-background">
         <Cocometer title="Cocômetro" locations={locations} />
