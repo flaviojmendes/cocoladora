@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FaPoop, FaWindowClose } from "react-icons/fa";
 import { Place } from "../../entities/Place";
+import ReactGA from "react-ga4";
 
 function loadScript(src: string, position: HTMLElement | null, id: string) {
   if (!position) return;
@@ -24,6 +25,7 @@ export function RatePlace() {
   const [hoverFacilitiesRating, setHoverFacilitiesRating] = useState<number>(0);
   const [privacyRating, setPrivacyRating] = useState<number>(0);
   const [hoverPrivacyRating, setHoverPrivacyRating] = useState<number>(0);
+  const [errorMessage, setErrorMessage] = useState<string>();
   const [notes, setNotes] = useState<string>("");
   const [isRating, setIsRating] = useState(false);
 
@@ -131,7 +133,7 @@ export function RatePlace() {
             marker.setVisible(false);
             const place = autocomplete.getPlace();
             if (!place.geometry || !place.geometry.location) {
-              console.log("Returned place contains no geometry");
+              
               return;
             }
 
@@ -158,7 +160,7 @@ export function RatePlace() {
           });
         },
         () => {
-          console.error("Error getting the user's location");
+          
         }
       );
     };
@@ -200,7 +202,6 @@ export function RatePlace() {
   };
 
   const handleRate = async () => {
-    console.log(JSON.stringify(newPlace));
     setIsRating(true);
 
     try {
@@ -216,8 +217,16 @@ export function RatePlace() {
       );
 
       if (!response.ok) {
+        if (response.status === 429) {
+          setErrorMessage("Calma aí! Você está avaliando rápido demais.");
+        }
+        if (response.status === 400) {
+          setErrorMessage("Por favor, preencha todos os campos.");
+        }
         throw new Error("Network response was not ok");
       }
+
+      setErrorMessage("");
 
       const data = await response.json();
       // reset form
@@ -230,13 +239,18 @@ export function RatePlace() {
       setHoverCleanRating(0);
       setHoverFacilitiesRating(0);
       setHoverPrivacyRating(0);
-      
-      console.log("Success:", data);
+
+      ReactGA.event({
+        category: "Rate",
+        action: "Rate Place",
+        label: window.location.pathname + window.location.search,
+      });
+      setDisplayRatePlace(false);
     } catch (error) {
-      console.error("Error:", error);
+      
     } finally {
-    
       setIsRating(false);
+      
     }
   };
 
@@ -252,7 +266,14 @@ export function RatePlace() {
       <div className={`w-full mt-10 justify-center lg:justify-start`}>
         <button
           className={`flex bg-primary p-4 mx-auto lg:mx-0 gap-2 w-fit font-secondary text-2xl cursor-pointer items-center text-background border-4 border-primary rounded-lg h-fit`}
-          onClick={() => setDisplayRatePlace(true)}
+          onClick={() => {
+            setDisplayRatePlace(true);
+            ReactGA.event({
+              category: "Rate",
+              action: "Open Rating",
+              label: window.location.pathname + window.location.search,
+            });
+          }}
         >
           Avaliar um <img src="/sam.png" className="w-16"></img>
         </button>
@@ -344,6 +365,9 @@ export function RatePlace() {
         >
           {isRating ? "Avaliando..." : "Avaliar"}
         </button>
+        {errorMessage && (
+          <span className="text-red-500 text-lg font-secondary">{errorMessage}</span>
+        )}
       </div>
     </div>
   );

@@ -15,9 +15,7 @@ import {
 import { Cocometer } from "../Cocometer";
 import { Location } from "../../entities/Location";
 
-interface CalculatorProps {
-
-}
+interface CalculatorProps {}
 
 export function Calculator(props: CalculatorProps) {
   const [salary, setSalary] = useState<string>(""); // Initialize as an empty string
@@ -87,7 +85,6 @@ export function Calculator(props: CalculatorProps) {
             year: "numeric",
           }),
         };
-        console.log("Location: ", newLocation);
 
         // Retrieve existing locations from localStorage
         const existingLocations = JSON.parse(
@@ -95,51 +92,47 @@ export function Calculator(props: CalculatorProps) {
         );
 
         // Post the location data as JSON
-        let response = fetch(
-          "https://handlelocationdata-k2ngx5ghxq-uc.a.run.app",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(newLocation),
-          }
-        )
-          .then((response) => response.json())
-          .then((data) => {
-            console.log("Success:", data);
+        async () => {
+          let response = fetch(
+            "https://handlelocationdata-k2ngx5ghxq-uc.a.run.app",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(newLocation),
+            }
+          )
+            .then((response) => response.json())
+            .then((data) => {
+              newLocation.city = data.city; // Add the city to the location object
 
-            newLocation.city = data.city; // Add the city to the location object
+              // Add the new location to the array
+              existingLocations.push(newLocation);
 
-            // Add the new location to the array
-            existingLocations.push(newLocation);
+              // Save the updated array back to localStorage
+              localStorage.setItem(
+                "locations",
+                JSON.stringify(existingLocations)
+              );
+              setIsCalculating(false); // Set to false when calculation ends
+            })
+            .catch((error) => {
+              // Add the new location to the array
+              existingLocations.push(newLocation);
 
-            // Save the updated array back to localStorage
-            localStorage.setItem(
-              "locations",
-              JSON.stringify(existingLocations)
-            );
-            setIsCalculating(false); // Set to false when calculation ends
-          })
-          .catch((error) => {
-            console.error("Error:", error);
+              // Save the updated array back to localStorage
+              localStorage.setItem(
+                "locations",
+                JSON.stringify(existingLocations)
+              );
+            });
+        };
 
-            // Add the new location to the array
-            existingLocations.push(newLocation);
-
-            // Save the updated array back to localStorage
-            localStorage.setItem(
-              "locations",
-              JSON.stringify(existingLocations)
-            );
-            setIsCalculating(false); // Set to false when calculation ends
-          });
-
+        setIsCalculating(false); // Set to false when calculation ends
         setShowResult(true);
-        
       },
       (error) => {
-        console.error("Error getting geolocation: ", error);
         setShowResult(true);
         setIsCalculating(false); // Set to false when calculation ends
       }
@@ -168,7 +161,14 @@ export function Calculator(props: CalculatorProps) {
       <div className={`w-full mt-10 flex justify-center lg:justify-end`}>
         <button
           className={`flex bg-primary p-4 gap-2 w-fit font-secondary text-2xl cursor-pointer items-center text-background border-4 border-primary rounded-lg h-fit`}
-          onClick={() => setDisplayCalculator(true)}
+          onClick={() => {
+            setDisplayCalculator(true);
+            ReactGA.event({
+              category: "Calculate",
+              action: "Open Calculator",
+              label: window.location.pathname + window.location.search,
+            });
+          }}
         >
           Calcular um <img src="/caco.png" className="w-16"></img>
         </button>
@@ -335,7 +335,6 @@ export function Calculator(props: CalculatorProps) {
                               "locations",
                               JSON.stringify(existingLocations)
                             );
-                            
                           }}
                         />
                       </span>
@@ -371,7 +370,13 @@ export function Calculator(props: CalculatorProps) {
           </div>
         </div>
 
-        <div className="h-full border-l-2 border-primary-dark my-10"></div>
+        <div
+          className={`h-full border-l-2 border-primary-dark my-10 ${
+            showResult
+              ? "opacity-100 scale-100 grow"
+              : "opacity-0 scale-95 hidden"
+          }`}
+        ></div>
         <div
           className={`flex flex-col mx-auto transition-all duration-1000 ${
             showResult
