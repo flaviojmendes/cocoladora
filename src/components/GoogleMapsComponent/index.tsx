@@ -12,6 +12,7 @@ import "leaflet/dist/leaflet.css";
 import { Modal } from "../Modal";
 import { Location } from "../../entities/Location";
 import { FaCheckSquare, FaSquare } from "react-icons/fa";
+import ReactGA from "react-ga4";
 
 const containerStyle = {
   width: "100%",
@@ -144,8 +145,8 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
             }
             className="border-2 border-secondary bg-secondary-light items-center gap-2 text-background p-2 rounded-md flex font-bold text-2xl"
           >
-            {displayMarkers.calculated ? <FaCheckSquare/> : <FaSquare/>} <img src="/caco.png" className="w-16 h-16" /> 
-            
+            {displayMarkers.calculated ? <FaCheckSquare /> : <FaSquare />}{" "}
+            <img src="/caco.png" className="w-16 h-16" />
           </button>
           <button
             onClick={() =>
@@ -156,7 +157,8 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
             }
             className="border-2 border-secondary bg-secondary-light items-center gap-2 text-background p-2 rounded-md flex font-bold text-2xl"
           >
-            {displayMarkers.rated ? <FaCheckSquare/> : <FaSquare/>} <img src="/sam.png" className="w-16 h-16" />
+            {displayMarkers.rated ? <FaCheckSquare /> : <FaSquare />}{" "}
+            <img src="/sam.png" className="w-16 h-16" />
           </button>
         </div>
       </div>
@@ -187,6 +189,11 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
                     setCurrentLocation(places[key]);
                     setClickedLocation(places[key]);
                     setIsModalOpen(true);
+                    ReactGA.event({
+                      category: "Detail",
+                      action: "View Rated Place",
+                      label: window.location.pathname + window.location.search,
+                    });
                   },
                 }}
               />
@@ -203,7 +210,9 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
 
             return (
               <Marker
-                key={`${location.latitude}, ${location.longitude} ${Math.random()}`}
+                key={`${location.latitude}, ${
+                  location.longitude
+                } ${Math.random()}`}
                 position={{
                   lat: location.latitude,
                   lng: location.longitude,
@@ -214,6 +223,11 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
                     setCurrentLocation(location);
                     setClickedLocation(location);
                     setIsModalOpen(true);
+                    ReactGA.event({
+                      category: "Detail",
+                      action: "View Calculated Poop",
+                      label: window.location.pathname + window.location.search,
+                    });
                   },
                 }}
               />
