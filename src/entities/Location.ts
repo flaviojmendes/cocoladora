@@ -1,9 +1,9 @@
 export interface Location {
   latitude: number;
   longitude: number;
-  totalEarned: number | string;
-  timeStarted?: string;
-  timeEnded?: string;
+  totalearned: number | string;
+  timestarted?: string;
+  timeended?: string;
   day?: string;
   city?: string;
 }

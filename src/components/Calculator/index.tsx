@@ -76,9 +76,9 @@ export function Calculator(props: CalculatorProps) {
         const newLocation: Location = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-          totalEarned: earned,
-          timeStarted: hourStarted,
-          timeEnded: hourEnded,
+          totalearned: earned,
+          timestarted: hourStarted,
+          timeended: hourEnded,
           day: new Date().toLocaleDateString("pt-BR", {
             day: "2-digit",
             month: "2-digit",
@@ -341,7 +341,7 @@ export function Calculator(props: CalculatorProps) {
                         <FaPoop /> - {location.day}
                       </span>
                       <span className=" text-lg font-secondary flex items-center gap-2">
-                        <FaMoneyBillWave /> - {location.totalEarned}
+                        <FaMoneyBillWave /> - {location.totalearned}
                       </span>
                       <span className=" text-lg font-secondary flex items-center gap-2">
                         <FaMapPin /> -{" "}

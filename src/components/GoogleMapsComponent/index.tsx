@@ -293,13 +293,13 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
                 <div className="flex flex-col text-right">
                   <span className="text-2xl text-secondary ">Início</span>
                   <span className="text-xl text-secondary-light">
-                    {clickedLocation.timeStarted}
+                    {clickedLocation.timestarted}
                   </span>
                 </div>
                 <div className="flex flex-col text-start">
                   <span className="text-2xl text-secondary ">Fim</span>
                   <span className="text-xl text-secondary-light">
-                    {clickedLocation.timeEnded}
+                    {clickedLocation.timeended}
                   </span>
                 </div>
               </div>
@@ -307,7 +307,7 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
               <div className="flex flex-col text-center mt-10">
                 <span className="text-2xl text-secondary ">Total Ganho</span>
                 <span className="text-xl text-secondary-light">
-                  {clickedLocation.totalEarned}
+                  {clickedLocation.totalearned}
                 </span>
               </div>
             </div>
