@@ -61,7 +61,7 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
   const fetchData = async () => {
     try {
       const response = await fetch(
-        "https://getaverageratingsandnotesgroupedbylocation-k2ngx5ghxq-uc.a.run.app"
+        "https://getaverageratingsandnotesgroupedbylocation-pzeq65kcvq-uc.a.run.app"
       );
       const data = await response.json();
       setPlaces(data);

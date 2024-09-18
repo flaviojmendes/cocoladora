@@ -94,7 +94,7 @@ export function Calculator(props: CalculatorProps) {
         // Post the location data as JSON
         async () => {
           let response = fetch(
-            "https://handlelocationdata-k2ngx5ghxq-uc.a.run.app",
+            "https://handlelocationdata-pzeq65kcvq-uc.a.run.app",
             {
               method: "POST",
               headers: {

@@ -206,7 +206,7 @@ export function RatePlace() {
 
     try {
       const response = await fetch(
-        "https://saveplace-k2ngx5ghxq-uc.a.run.app",
+        "https://saveplace-pzeq65kcvq-uc.a.run.app",
         {
           method: "POST",
           headers: {

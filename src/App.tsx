@@ -37,7 +37,7 @@ function App() {
   const fetchCocometerData = async () => {
     try {
       const response = await fetch(
-        "https://listlocationdata-k2ngx5ghxq-uc.a.run.app"
+        "https://listlocationdata-pzeq65kcvq-uc.a.run.app"
       );
       const data = await response.json();
       setLocations(data);
