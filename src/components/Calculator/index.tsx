@@ -92,42 +92,41 @@ export function Calculator(props: CalculatorProps) {
         );
 
         // Post the location data as JSON
-        async () => {
-          let response = fetch(
-            "https://handlelocationdata-pzeq65kcvq-uc.a.run.app",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(newLocation),
-            }
-          )
-            .then((response) => response.json())
-            .then((data) => {
-              newLocation.city = data.city; // Add the city to the location object
 
-              // Add the new location to the array
-              existingLocations.push(newLocation);
+        let response = fetch(
+          "https://handlelocationdata-pzeq65kcvq-uc.a.run.app",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(newLocation),
+          }
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            newLocation.city = data.city; // Add the city to the location object
 
-              // Save the updated array back to localStorage
-              localStorage.setItem(
-                "locations",
-                JSON.stringify(existingLocations)
-              );
-              setIsCalculating(false); // Set to false when calculation ends
-            })
-            .catch((error) => {
-              // Add the new location to the array
-              existingLocations.push(newLocation);
+            // Add the new location to the array
+            existingLocations.push(newLocation);
 
-              // Save the updated array back to localStorage
-              localStorage.setItem(
-                "locations",
-                JSON.stringify(existingLocations)
-              );
-            });
-        };
+            // Save the updated array back to localStorage
+            localStorage.setItem(
+              "locations",
+              JSON.stringify(existingLocations)
+            );
+            setIsCalculating(false); // Set to false when calculation ends
+          })
+          .catch((error) => {
+            // Add the new location to the array
+            existingLocations.push(newLocation);
+
+            // Save the updated array back to localStorage
+            localStorage.setItem(
+              "locations",
+              JSON.stringify(existingLocations)
+            );
+          });
 
         setIsCalculating(false); // Set to false when calculation ends
         setShowResult(true);
