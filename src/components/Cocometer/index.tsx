@@ -26,8 +26,8 @@ export function Cocometer(props: CocometerProps) {
   const updateTotalEarningsByCurrency = () => {
     const earnings = props.locations.reduce(
       (totals, loc) => {
-        if (typeof loc.totalEarned === "string") {
-          const valueString = loc.totalEarned as string;
+        if (typeof loc.totalearned === "string") {
+          const valueString = loc.totalearned as string;
           let value = parseFloat(valueString.replace(/[^\d.-]/g, ""));
           if (!isNaN(value)) {
             if (valueString.startsWith("R$")) {
