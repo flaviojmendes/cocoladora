@@ -1,13 +1,16 @@
 import html2canvas from "html2canvas";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactGA from "react-ga4";
 
 import {
+  FaCheck,
   FaHistory,
   FaMapPin,
+  FaMoneyBill,
   FaMoneyBillWave,
   FaPoop,
   FaRegWindowClose,
+  FaTrash,
   FaWindowClose,
 } from "react-icons/fa";
 
@@ -18,6 +21,7 @@ import { ComponentType } from "../../entities/ComponentType";
 interface CalculatorProps {
   selectedComponent: ComponentType | null;
   setSelectedComponent: (component: ComponentType | null) => void;
+  locations: Location[];
 }
 
 export function Calculator(props: CalculatorProps) {
@@ -30,9 +34,35 @@ export function Calculator(props: CalculatorProps) {
   const [isCalculating, setIsCalculating] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [displayCalculator, setDisplayCalculator] = useState(false);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [totalEarningsByCurrency, setTotalEarningsByCurrency] = useState<{
+    BRL: number;
+    USD: number;
+    EUR: number;
+  }>({
+    BRL: 0,
+    USD: 0,
+    EUR: 0,
+  });
 
   const resultRef = useRef<HTMLDivElement>(null);
   ReactGA.initialize(import.meta.env.VITE_GOOGLE_ANALYTICS_ID);
+
+  useEffect(() => {
+    updateTotalEarningsByCurrency(locations);
+    setLocations(JSON.parse(localStorage.getItem("locations") || "[]"));
+  }, []);
+
+  const updateLocations = (index: number) => {
+    const existingLocations = JSON.parse(
+      localStorage.getItem("locations") || "[]"
+    );
+    existingLocations.splice(index, 1);
+    localStorage.setItem("locations", JSON.stringify(existingLocations));
+
+    setLocations(existingLocations);
+    updateTotalEarningsByCurrency(existingLocations);
+  };
 
   const calculateIntervalSalary = () => {
     if (!salary || !hourStarted || !hourEnded) return 0;
@@ -141,6 +171,29 @@ export function Calculator(props: CalculatorProps) {
     );
   };
 
+  const updateTotalEarningsByCurrency = (locations: Location[]) => {
+    const earnings = locations.reduce(
+      (totals, loc) => {
+        if (typeof loc.totalearned === "string") {
+          const valueString = loc.totalearned as string;
+          let value = parseFloat(valueString.replace(/[^\d.-]/g, ""));
+          if (!isNaN(value)) {
+            if (valueString.startsWith("R$")) {
+              totals.BRL += value;
+            } else if (valueString.startsWith("$")) {
+              totals.USD += value;
+            } else if (valueString.startsWith("€")) {
+              totals.EUR += value;
+            }
+          }
+        }
+        return totals;
+      },
+      { BRL: 0, USD: 0, EUR: 0 }
+    );
+    setTotalEarningsByCurrency(earnings);
+  };
+
   const downloadImage = () => {
     if (resultRef.current) {
       ReactGA.event({
@@ -176,18 +229,16 @@ export function Calculator(props: CalculatorProps) {
           {/* Branding */}
 
           <div className="flex flex-col-reverse lg:flex-row grow mb-6">
-            
             <div className="flex grow  ">
-            
               <div className="flex-grow"></div>
               <span
                 className={`${
                   showHistory ? "hidden" : ""
                 } text-lg lg:text-xl font-secondary text-primary-dark flex items-center gap-2 hover:font-semibold hover:cursor-pointer hover:text-secondary-light mt-6`}
               >
-                <FaHistory />
+                <FaMoneyBill />
                 <span onClick={() => setShowHistory(!showHistory)}>
-                  Meu Histórico
+                  Meu Contracheque
                 </span>
               </span>
               <span
@@ -197,7 +248,7 @@ export function Calculator(props: CalculatorProps) {
               >
                 <FaRegWindowClose />
                 <span onClick={() => setShowHistory(!showHistory)}>
-                  Fechar Histórico
+                  Fechar Contracheque
                 </span>
               </span>
             </div>
@@ -286,83 +337,70 @@ export function Calculator(props: CalculatorProps) {
           </div>
           {/* History */}
           <div
-            className={`flex flex-col gap-4 w-full ${
+            className={`flex flex-col gap-4 w-full font-typewriter ${
               !showHistory ? " hidden" : "visible"
-            }`}
+            } p-4 bg-white border-2 border-gray-300 rounded-lg shadow-md`}
           >
-            <h2 className="text-primary-dark font-primary text-3xl mx-auto">
-              Meu Histórico de 💩💩💩
+            <h2 className="text-primary-dark text-3xl mx-auto border-b-2 border-gray-300 pb-2">
+              Contracheque
             </h2>
-            <div className="flex flex-wrap gap-4 w-full">
-              {localStorage.getItem("locations") &&
-              JSON.parse(localStorage.getItem("locations") || "[]").length >
-                0 ? (
-                JSON.parse(localStorage.getItem("locations") || "[]").map(
-                  (location: Location, index: number) => (
-                    <div
-                      key={index}
-                      className="flex flex-col items-start gap-2 px-2 min-w-52 bg-primary rounded-md w-full lg:w-fit border-2 border-primary-dark text-white relative"
-                    >
-                      {/* Remove from history */}
-                      <span className="text-lg font-secondary flex items-center gap-2 absolute top-2 right-2 cursor-pointer hover:text-background">
-                        <FaRegWindowClose
-                          onClick={() => {
-                            const existingLocations = JSON.parse(
-                              localStorage.getItem("locations") || "[]"
-                            );
-                            existingLocations.splice(index, 1);
-                            localStorage.setItem(
-                              "locations",
-                              JSON.stringify(existingLocations)
-                            );
-                          }}
-                        />
-                      </span>
-                      <span className=" text-lg font-secondary flex items-center gap-2">
-                        <FaPoop /> - {location.day}
-                      </span>
-                      <span className=" text-lg font-secondary flex items-center gap-2">
-                        <FaMoneyBillWave /> - {location.totalearned}
-                      </span>
-                      <span className=" text-lg font-secondary flex items-center gap-2">
-                        <FaMapPin /> -{" "}
-                        {location.city
-                          ? location.city
-                          : `${location.latitude}, ${location.longitude}`}
-                      </span>
-                    </div>
-                  )
-                )
+            <div className="flex flex-col gap-1 w-full">
+              <div className="grid grid-cols-4 text-primary-dark px-4">
+                <span className="text-lg col-span-2  lg:col-span-1">Data</span>
+                <span className="text-lg">Valor</span>
+                <span className="text-lg hidden lg:block">Local</span>
+                <span className="text-lg"></span>
+              </div>
+              {locations && locations.length > 0 ? (
+                locations.map((location: Location, index: number) => (
+                  <div
+                    key={index}
+                    className="grid grid-cols-4 items-start gap-2 px-4 min-w-52 rounded-md w-full border-b-2 border-dotted border-secondary-light text-secondary-light relative"
+                  >
+                    {/* Remove from history */}
+                    <span className="text-lg  flex items-center gap-2 absolute top-2 right-2 cursor-pointer hover:text-primary">
+                      <FaTrash
+                        onClick={() => {
+                          updateLocations(index);
+                        }}
+                      />
+                    </span>
+                    <span className="text-lg flex items-center gap-2 col-span-2 lg:col-span-1">
+                      {location.day}
+                    </span>
+                    <span className="text-lg flex items-center gap-2 ">
+                      {location.totalearned}
+                    </span>
+                    <span className="text-lg hidden lg:flex items-center gap-2">
+                      {" "}
+                      {location.city
+                        ? location.city
+                        : `${location.latitude}, ${location.longitude}`}
+                    </span>
+                  </div>
+                ))
               ) : (
-                <span className="text-secondary text-2xl font-secondary mx-auto flex gap-2 my-6">
+                <span className="text-secondary text-2xl mx-auto flex gap-2 my-6">
                   Nenhum <FaPoop /> ainda
                 </span>
               )}
-            </div>
-            <div className="text-primary-dark font-primary text-3xl mx-auto">
-              <Cocometer
-                title="Eu já ganhei:"
-                locations={JSON.parse(
-                  localStorage.getItem("locations") || "[]"
-                )}
-              />
+              <div className="grid grid-cols-4 text-primary-dark px-4">
+                <span className="text-lg col-span-2 lg:col-span-1">Total</span>
+                <span className="text-lg">R${totalEarningsByCurrency.BRL}</span>
+                <span className="text-lg hidden lg:block">Local</span>
+                <span className="text-lg"></span>
+              </div>
             </div>
           </div>
         </div>
 
         <div
           className={`h-full border-l-2 border-primary-dark my-10 ${
-            showResult
-              ? "opacity-100 scale-100"
-              : "opacity-0 scale-95 hidden"
+            showResult ? "opacity-100 scale-100" : "opacity-0 scale-95 hidden"
           }`}
         ></div>
         <div
-          className={`flex flex-col mx-auto ${
-            showResult
-              ? "grow"
-              : "hidden"
-          }`}
+          className={`flex flex-col mx-auto ${showResult ? "grow" : "hidden"}`}
         >
           {/* Display Interval Salary */}
           <div

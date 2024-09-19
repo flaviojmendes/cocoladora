@@ -20,6 +20,7 @@ module.exports = {
       fontFamily: {
         'primary': ['"Chicle"', 'sans-serif'],
         'secondary': ['"Boogaloo"', 'sans-serif'],
+        'typewriter': ['"Cousine"', 'sans-serif'],
       },
     },
   },
