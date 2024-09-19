@@ -1,10 +1,9 @@
 import html2canvas from "html2canvas";
 import { useRef, useState } from "react";
 import ReactGA from "react-ga4";
+
 import {
   FaHistory,
-  FaInstagram,
-  FaInstagramSquare,
   FaMapPin,
   FaMoneyBillWave,
   FaPoop,
@@ -14,8 +13,12 @@ import {
 
 import { Cocometer } from "../Cocometer";
 import { Location } from "../../entities/Location";
+import { ComponentType } from "../../entities/ComponentType";
 
-interface CalculatorProps {}
+interface CalculatorProps {
+  selectedComponent: ComponentType | null;
+  setSelectedComponent: (component: ComponentType | null) => void;
+}
 
 export function Calculator(props: CalculatorProps) {
   const [salary, setSalary] = useState<string>(""); // Initialize as an empty string
@@ -156,48 +159,26 @@ export function Calculator(props: CalculatorProps) {
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className={`w-full mt-10 flex justify-center lg:justify-end`}>
-        <button
-          className={`flex bg-primary p-4 gap-2 w-fit font-secondary text-2xl cursor-pointer items-center text-background border-4 border-primary rounded-lg h-fit`}
-          onClick={() => {
-            setDisplayCalculator(true);
-            ReactGA.event({
-              category: "Calculate",
-              action: "Open Calculator",
-              label: window.location.pathname + window.location.search,
-            });
-          }}
-        >
-          Calcular um <img src="/caco.png" className="w-16"></img>
-        </button>
-      </div>
+    <div
+      className={`gap-2 ${
+        props.selectedComponent === ComponentType.Calculator
+          ? "flex flex-col w-full mt-4"
+          : "hidden"
+      }`}
+    >
       <div
-        className={`${
-          displayCalculator ? "flex" : "hidden"
-        } flex-col relative lg:flex-row items-center mx-auto w-11/12 lg:w-11/12 h-fit gap-4 bg-background py-5 px-2 lg:px-14 rounded-2xl border-4 border-primary shadow-md shadow-secondary`}
+        className={`flex relative flex-col lg:flex-row items-center mx-auto w-full h-fit gap-4 bg-background py-5 px-2 lg:px-14 rounded-2xl border-4 border-primary shadow-md shadow-secondary`}
       >
         <span className="absolute top-2 right-2 cursor-pointer text-primary text-2xl">
           <FaWindowClose onClick={() => setDisplayCalculator(false)} />
         </span>
-        <div className="flex flex-col w-full lg:w-1/2 mx-auto transition-all grow duration-1000">
+        <div className="flex flex-col w-full lg:w-1/2 mx-auto grow">
           {/* Branding */}
 
           <div className="flex flex-col-reverse lg:flex-row grow mb-6">
-            {/* <div className="grow hidden lg:flex items-center">
-              <a href="https://instagram.com/trilhainfo" target="_blank">
-                <FaInstagram className="text-3xl lg:text-4xl cursor-pointer z-30" />
-              </a>
-            </div> */}
-
+            
             <div className="flex grow  ">
-              {/* <a
-                href="https://instagram.com/trilhainfo"
-                target="_blank"
-                className="lg:hidden"
-              >
-                <FaInstagram className="text-4xl cursor-pointer z-30" />
-              </a> */}
+            
               <div className="flex-grow"></div>
               <span
                 className={`${
@@ -224,8 +205,8 @@ export function Calculator(props: CalculatorProps) {
 
           {/* Calculation */}
           <div
-            className={`flex flex-col gap-4 w-full transition-all duration-300 ${
-              showHistory ? " invisible scale-0 h-0" : "visible scale-100"
+            className={`flex flex-col gap-4 w-full ${
+              showHistory ? " invisible h-0" : "visible"
             }`}
           >
             {/* Salary */}
@@ -305,8 +286,8 @@ export function Calculator(props: CalculatorProps) {
           </div>
           {/* History */}
           <div
-            className={`flex flex-col gap-4 w-full transition-all duration-300 ${
-              !showHistory ? " hidden scale-0" : "visible scale-100"
+            className={`flex flex-col gap-4 w-full ${
+              !showHistory ? " hidden" : "visible"
             }`}
           >
             <h2 className="text-primary-dark font-primary text-3xl mx-auto">
@@ -372,15 +353,15 @@ export function Calculator(props: CalculatorProps) {
         <div
           className={`h-full border-l-2 border-primary-dark my-10 ${
             showResult
-              ? "opacity-100 scale-100 grow"
+              ? "opacity-100 scale-100"
               : "opacity-0 scale-95 hidden"
           }`}
         ></div>
         <div
-          className={`flex flex-col mx-auto transition-all duration-1000 ${
+          className={`flex flex-col mx-auto ${
             showResult
-              ? "opacity-100 scale-100 grow"
-              : "opacity-0 scale-95 hidden"
+              ? "grow"
+              : "hidden"
           }`}
         >
           {/* Display Interval Salary */}

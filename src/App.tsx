@@ -1,15 +1,15 @@
-import React, { useState, useRef, useEffect } from "react";
-import html2canvas from "html2canvas";
+import { useState, useEffect } from "react";
 import "./App.css";
 import ReactGA from "react-ga4";
 import GoogleMapComponent from "./components/GoogleMapsComponent";
 import { Location } from "./entities/Location";
 
 import "odometer/themes/odometer-theme-minimal.css";
-import { Calculator } from "./components/Calculator";
 import { Cocometer } from "./components/Cocometer";
-import { RatePlace } from "./components/RatePlace";
 import { Place } from "./entities/Place";
+import { ComponentType } from "./entities/ComponentType";
+import { Menu } from "./components/Menu";
+import { FaDonate, FaInstagram } from "react-icons/fa";
 
 function App() {
   ReactGA.initialize(import.meta.env.VITE_GOOGLE_ANALYTICS_ID);
@@ -20,15 +20,6 @@ function App() {
   });
 
   const [locations, setLocations] = useState<Location[]>([]);
-  const [places, setPlaces] = useState<{
-    [key: string]: Place;
-  }>();
-
-  const [location, setLocation] = useState<{
-    latitude: number;
-    longitude: number;
-    totalEarned: string | number;
-  } | null>(null);
 
   useEffect(() => {
     fetchCocometerData();
@@ -49,27 +40,13 @@ function App() {
   return (
     <div className="bg-secondary-light w-full h-full flex flex-col">
       {/* Sticky header */}
-      <div className="flex w-full text-background font-secondary text-center py-2 sticky top-0 text-xl px-2 lg:px-10 items-end bg-secondary bg-opacity-35 z-10">
-        <p className="mx-auto">
-          Esse projeto possui fins educativos. Se você quer contribuir em
-          deixá-lo sempre atualizado e em pleno funcionamento, considere apoiar
-          em{" "}
-          <a
-            className="underline"
-            target="_blank"
-            href="https://apoia.se/trilhainfo"
-          >
-            apoia.se/trilhainfo
-          </a>{" "}
-          e seguir{" "}
-          <a
-            className="underline"
-            target="_blank"
-            href="https://instagram.com/trilhainfo"
-          >
-            instagram.com/trilhainfo
-          </a>
-        </p>
+      <div className="flex w-full justify-end text-background font-secondary text-center py-2 sticky top-0 text-xl px-2 lg:px-10 items-end bg-secondary bg-opacity-75 z-10 gap-4 shadow-sm">
+        <a href="https://instagram.com/trilhainfo" target="_blank">
+          <FaInstagram className="text-3xl lg:text-4xl" />
+        </a>
+        <a href="https://apoia.se/trilhainfo" target="_blank">
+          <FaDonate className="text-3xl lg:text-4xl" />
+        </a>
       </div>
       <div className="flex items-end w-fit mx-auto mb-4">
         <a target="_blank" href="https://instagram.com/trilhainfo">
@@ -81,11 +58,8 @@ function App() {
           </a>
         </h1>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-        <Calculator />
-        <RatePlace />
-        <div className="flex"></div>
-      </div>
+
+      <Menu />
 
       {/* Google Map Component */}
 

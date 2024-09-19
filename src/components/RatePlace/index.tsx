@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { FaPoop, FaWindowClose } from "react-icons/fa";
 import { Place } from "../../entities/Place";
 import ReactGA from "react-ga4";
+import { ComponentType } from "../../entities/ComponentType";
 
 function loadScript(src: string, position: HTMLElement | null, id: string) {
   if (!position) return;
@@ -14,7 +15,12 @@ function loadScript(src: string, position: HTMLElement | null, id: string) {
   position.appendChild(script);
 }
 
-export function RatePlace() {
+type RatePlaceProps = {
+  selectedComponent: ComponentType | null;
+  setSelectedComponent: (component: ComponentType | null) => void;
+};
+
+export function RatePlace(props: RatePlaceProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [displayRatePlace, setDisplayRatePlace] = useState(false);
@@ -133,7 +139,6 @@ export function RatePlace() {
             marker.setVisible(false);
             const place = autocomplete.getPlace();
             if (!place.geometry || !place.geometry.location) {
-              
               return;
             }
 
@@ -159,9 +164,7 @@ export function RatePlace() {
             marker.setVisible(true);
           });
         },
-        () => {
-          
-        }
+        () => {}
       );
     };
 
@@ -247,10 +250,8 @@ export function RatePlace() {
       });
       setDisplayRatePlace(false);
     } catch (error) {
-      
     } finally {
       setIsRating(false);
-      
     }
   };
 
@@ -262,26 +263,15 @@ export function RatePlace() {
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className={`w-full mt-10 justify-center lg:justify-start`}>
-        <button
-          className={`flex bg-primary p-4 mx-auto lg:mx-0 gap-2 w-fit font-secondary text-2xl cursor-pointer items-center text-background border-4 border-primary rounded-lg h-fit`}
-          onClick={() => {
-            setDisplayRatePlace(true);
-            ReactGA.event({
-              category: "Rate",
-              action: "Open Rating",
-              label: window.location.pathname + window.location.search,
-            });
-          }}
-        >
-          Avaliar um <img src="/sam.png" className="w-16"></img>
-        </button>
-      </div>
+    <div
+      className={`gap-2 ${
+        props.selectedComponent === ComponentType.RatePlace
+          ? "flex flex-col w-full mt-4"
+          : "hidden"
+      }`}
+    >
       <div
-        className={`${
-          displayRatePlace ? "flex" : "hidden"
-        } flex-col items-center mx-auto w-11/12 lg:w-11/12 relative h-fit gap-4 bg-background py-5 px-2 lg:px-14 rounded-2xl border-4 border-primary shadow-md shadow-secondary`}
+        className={`flex-col items-center mx-auto w-full relative h-fit gap-4 bg-background py-5 px-2 lg:px-14 rounded-2xl border-4 border-primary shadow-md shadow-secondary`}
       >
         <span className="absolute top-2 right-2 cursor-pointer text-primary text-2xl">
           <FaWindowClose onClick={() => setDisplayRatePlace(false)} />
@@ -366,7 +356,9 @@ export function RatePlace() {
           {isRating ? "Avaliando..." : "Avaliar"}
         </button>
         {errorMessage && (
-          <span className="text-red-500 text-lg font-secondary">{errorMessage}</span>
+          <span className="text-red-500 text-lg font-secondary">
+            {errorMessage}
+          </span>
         )}
       </div>
     </div>
