@@ -10,7 +10,7 @@ import { Cocometer } from "./components/Cocometer";
 import { Place } from "./entities/Place";
 import { ComponentType } from "./entities/ComponentType";
 import { Menu } from "./components/Menu";
-import { FaDonate, FaInstagram } from "react-icons/fa";
+import { FaDonate, FaInstagram, FaPaypal } from "react-icons/fa";
 import { translate } from "./languages/translator";
 import { useLocalStorage } from "@uidotdev/usehooks";
 
@@ -71,6 +71,9 @@ function App() {
           </a>
           <a href="https://apoia.se/trilhainfo" target="_blank">
             <FaDonate className="text-3xl lg:text-4xl" />
+          </a>
+          <a href="https://www.paypal.com/donate/?hosted_button_id=9LR5BW2NCE25U" target="_blank">
+            <FaPaypal className="text-3xl lg:text-4xl" />
           </a>
         </div>
       </div>
