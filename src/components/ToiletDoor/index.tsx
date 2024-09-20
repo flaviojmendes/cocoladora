@@ -10,6 +10,10 @@ export function ToiletDoor() {
     //retrieve messages
     fetch("https://retrievemessages-pzeq65kcvq-uc.a.run.app").then((response) =>
       response.json().then((data) => {
+        data.forEach((msg: DoorMessage) => {
+            msg.style = getRandomStyle();
+        });
+        
         setMessages(data);
       })
     );
@@ -40,7 +44,7 @@ export function ToiletDoor() {
   return (
     <div className="flex flex-col items-center py-10 px-4">
       <h1 className="text-background font-primary text-4xl mb-10">
-        Porta do Banheiro
+        {translate("toiletDoor")}
       </h1>
       <button
         onClick={handleMessageClick}
@@ -56,7 +60,7 @@ export function ToiletDoor() {
             key={msg.id}
             className="absolute text-lg font-write"
             style={{
-              ...getRandomStyle(),
+              ...msg.style,
               color: msg.fontColor,
             }}
           >
