@@ -21,7 +21,6 @@ import { ComponentType } from "../../entities/ComponentType";
 interface CalculatorProps {
   selectedComponent: ComponentType | null;
   setSelectedComponent: (component: ComponentType | null) => void;
-  locations: Location[];
 }
 
 export function Calculator(props: CalculatorProps) {
