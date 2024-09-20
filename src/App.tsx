@@ -11,6 +11,7 @@ import { Menu } from "./components/Menu";
 import { FaDonate, FaInstagram, FaPaypal } from "react-icons/fa";
 import { translate } from "./languages/translator";
 import { useLocalStorage } from "@uidotdev/usehooks";
+import { ToiletDoor } from "./components/ToiletDoor";
 
 function App() {
   ReactGA.initialize(import.meta.env.VITE_GOOGLE_ANALYTICS_ID);
@@ -22,7 +23,10 @@ function App() {
 
   const [locations, setLocations] = useState<Location[]>([]);
   const [userLanguage, setUserLanguage] = useLocalStorage("userLanguage", "pt");
-  const [manuallySetLanguage, setManuallySetLanguage] = useLocalStorage("manuallySetLanguage", false);
+  const [manuallySetLanguage, setManuallySetLanguage] = useLocalStorage(
+    "manuallySetLanguage",
+    false
+  );
 
   useEffect(() => {
     fetchCocometerData();
@@ -56,7 +60,9 @@ function App() {
   };
 
   const showConfirmChangeToEnglish = () => {
-    return window.confirm("I see you maybe don't speak Portuguese 🇧🇷. Do you want to change the language to English 🇬🇧?");
+    return window.confirm(
+      "I see you maybe don't speak Portuguese 🇧🇷. Do you want to change the language to English 🇬🇧?"
+    );
   };
 
   return (
@@ -122,6 +128,11 @@ function App() {
       <div className="mt-0 z-0">
         <GoogleMapComponent locations={locations} />
       </div>
+
+      <div className="mt-0 z-0">
+        <ToiletDoor />
+      </div>
+
       <div className="text-background">
         <Cocometer title={translate("cocometer")} locations={locations} />
       </div>

@@ -21,6 +21,8 @@ module.exports = {
         'primary': ['"Chicle"', 'sans-serif'],
         'secondary': ['"Boogaloo"', 'sans-serif'],
         'typewriter': ['"Cousine"', 'sans-serif'],
+        'graffiti': ['"Sedgwick Ave"', 'cursive'],
+        'handwriting': ['"Calligraffitti"', 'cursive'],
       },
     },
   },
