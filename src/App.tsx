@@ -57,7 +57,7 @@ function App() {
   };
 
   const showConfirmChangeToEnglish = () => {
-    return window.confirm("I see you're not from Brazil. Do you want to change the language to English?");
+    return window.confirm("I see yoy maybe don't speak portuguese. Do you want to change to english?");
   };
 
   return (
