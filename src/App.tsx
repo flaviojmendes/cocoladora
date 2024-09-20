@@ -7,8 +7,6 @@ import { GiBrazilFlag, GiUsaFlag } from "react-icons/gi";
 
 import "odometer/themes/odometer-theme-minimal.css";
 import { Cocometer } from "./components/Cocometer";
-import { Place } from "./entities/Place";
-import { ComponentType } from "./entities/ComponentType";
 import { Menu } from "./components/Menu";
 import { FaDonate, FaInstagram, FaPaypal } from "react-icons/fa";
 import { translate } from "./languages/translator";
@@ -24,6 +22,7 @@ function App() {
 
   const [locations, setLocations] = useState<Location[]>([]);
   const [userLanguage, setUserLanguage] = useLocalStorage("userLanguage", "pt");
+  const [manuallySetLanguage, setManuallySetLanguage] = useLocalStorage("manuallySetLanguage", false);
 
   useEffect(() => {
     fetchCocometerData();
@@ -31,6 +30,17 @@ function App() {
     console.log(navigator.language);
     if (!userLanguage) {
       setUserLanguage(navigator.language);
+    }
+
+    if (
+      userLanguage &&
+      !manuallySetLanguage &&
+      !navigator.language.includes("pt")
+    ) {
+      if (showConfirmChangeToEnglish()) {
+        setUserLanguage("en");
+      }
+      setManuallySetLanguage(true);
     }
   }, []);
 
@@ -46,6 +56,10 @@ function App() {
     }
   };
 
+  const showConfirmChangeToEnglish = () => {
+    return window.confirm("I see you're not from Brazil. Do you want to change the language to English?");
+  };
+
   return (
     <div className="bg-secondary-light w-full h-full flex flex-col">
       {/* Sticky header */}
@@ -55,14 +69,20 @@ function App() {
             onClick={() => setUserLanguage("pt")}
             className="cursor-pointer"
           >
-            <span className="flex gap-1 items-center">PT<GiBrazilFlag /></span>
+            <span className="flex gap-1 items-center">
+              PT
+              <GiBrazilFlag />
+            </span>
           </button>
-          <div className="h-full border-l-2 border-l-background w-2">{" "}</div>
+          <div className="h-full border-l-2 border-l-background w-2"> </div>
           <button
             onClick={() => setUserLanguage("en")}
             className="cursor-pointer"
           >
-             <span className="flex gap-1 items-center">EN<GiUsaFlag /></span>
+            <span className="flex gap-1 items-center">
+              EN
+              <GiUsaFlag />
+            </span>
           </button>
         </div>
         <div className="flex grow justify-end gap-4">
@@ -72,24 +92,28 @@ function App() {
           <a href="https://apoia.se/trilhainfo" target="_blank">
             <FaDonate className="text-3xl lg:text-4xl" />
           </a>
-          <a href="https://www.paypal.com/donate/?hosted_button_id=9LR5BW2NCE25U" target="_blank">
+          <a
+            href="https://www.paypal.com/donate/?hosted_button_id=9LR5BW2NCE25U"
+            target="_blank"
+          >
             <FaPaypal className="text-3xl lg:text-4xl" />
           </a>
         </div>
       </div>
       <div className="flex flex-col w-full text-center mb-4">
-      <div className="flex items-end w-fit mx-auto mb-4">
-        <a target="_blank" href="https://instagram.com/trilhainfo">
-          <img src="/caco.png" className="w-24 lg:w-32" />
-        </a>
-        <h1 className="text-4xl lg:text-6xl font-bold ml-4 font-primary text-background">
+        <div className="flex items-end w-fit mx-auto mb-4">
           <a target="_blank" href="https://instagram.com/trilhainfo">
-            Cocoladora
+            <img src="/caco.png" className="w-24 lg:w-32" />
           </a>
-        </h1>
-       
-      </div>
-      <h3 className="font-secondary text-xl text-background">{translate("subtitle")}</h3>
+          <h1 className="text-4xl lg:text-6xl font-bold ml-4 font-primary text-background">
+            <a target="_blank" href="https://instagram.com/trilhainfo">
+              Cocoladora
+            </a>
+          </h1>
+        </div>
+        <h3 className="font-secondary text-xl text-background">
+          {translate("subtitle")}
+        </h3>
       </div>
 
       <Menu />
