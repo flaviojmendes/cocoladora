@@ -44,17 +44,17 @@ export function ToiletDoor() {
       </h1>
       <button
         onClick={handleMessageClick}
-        
-        className="bg-primary text-background font-primary text-xl py-2 px-4 rounded-lg mb-4"
+        className="bg-primary text-background flex font-secondary text-2xl py-2 px-4 rounded-lg mb-4 items-center"
       >
-        {translate("writeMessage")}
+        {translate("writeMessage")}<img src="/dora.png" className="w-16 h-16 ml-2" />
       </button>
-      <div className="min-h-48 bg-background border-4 border-primary-dark relative w-full lg:w-1/2 h-96">
-        <div className="absolute w-2.5 h-2.5 bg-yellow-500 top-1/2 right-2 transform -translate-y-1/2 rounded-full font-graffiti"></div>
+      <div className="min-h-48 bg-background border-8 border-secondary relative w-full lg:w-1/2 h-96 rounded-lg shadow-lg select-none">
+        <div className="absolute w-3 h-3 bg-yellow-500 top-1/2 right-4 transform -translate-y-1/2 rounded-full font-graffiti"></div>
+        <div className="absolute w-2 h-8 bg-gray-700 top-1/2 right-2 transform -translate-y-1/2 rounded-sm"></div>
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className="absolute font-handwriting"
+            className="absolute text-lg font-write"
             style={{
               ...getRandomStyle(),
               color: msg.fontColor,
