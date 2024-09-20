@@ -18,6 +18,7 @@ import { Cocometer } from "../Cocometer";
 import { Location } from "../../entities/Location";
 import { ComponentType } from "../../entities/ComponentType";
 import { translate } from "../../languages/translator";
+import { useLocalStorage } from "@uidotdev/usehooks";
 
 interface CalculatorProps {
   selectedComponent: ComponentType | null;
@@ -34,7 +35,10 @@ export function Calculator(props: CalculatorProps) {
   const [isCalculating, setIsCalculating] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [displayCalculator, setDisplayCalculator] = useState(false);
-  const [locations, setLocations] = useState<Location[]>([]);
+  const [locations, setLocations] = useLocalStorage<Location[]>(
+    "locations",
+    []
+  );
   const [totalEarningsByCurrency, setTotalEarningsByCurrency] = useState<{
     BRL: number;
     USD: number;
@@ -50,16 +54,11 @@ export function Calculator(props: CalculatorProps) {
 
   useEffect(() => {
     updateTotalEarningsByCurrency(locations);
-    setLocations(JSON.parse(localStorage.getItem("locations") || "[]"));
   }, []);
 
   const updateLocations = (index: number) => {
-    const existingLocations = JSON.parse(
-      localStorage.getItem("locations") || "[]"
-    );
+    const existingLocations = locations;
     existingLocations.splice(index, 1);
-    localStorage.setItem("locations", JSON.stringify(existingLocations));
-
     setLocations(existingLocations);
     updateTotalEarningsByCurrency(existingLocations);
   };
@@ -120,9 +119,7 @@ export function Calculator(props: CalculatorProps) {
         };
 
         // Retrieve existing locations from localStorage
-        const existingLocations = JSON.parse(
-          localStorage.getItem("locations") || "[]"
-        );
+        const existingLocations = locations;
 
         // Post the location data as JSON
 
@@ -144,10 +141,7 @@ export function Calculator(props: CalculatorProps) {
             existingLocations.push(newLocation);
 
             // Save the updated array back to localStorage
-            localStorage.setItem(
-              "locations",
-              JSON.stringify(existingLocations)
-            );
+            setLocations(existingLocations);
             setIsCalculating(false); // Set to false when calculation ends
           })
           .catch((error) => {
@@ -155,16 +149,32 @@ export function Calculator(props: CalculatorProps) {
             existingLocations.push(newLocation);
 
             // Save the updated array back to localStorage
-            localStorage.setItem(
-              "locations",
-              JSON.stringify(existingLocations)
-            );
+            setLocations(existingLocations);
           });
 
         setIsCalculating(false); // Set to false when calculation ends
         setShowResult(true);
       },
       (error) => {
+        const newLocation: Location = {
+          latitude: 0,
+          longitude: 0,
+          city: "Unknown",
+          totalearned: earned,
+          timestarted: hourStarted,
+          timeended: hourEnded,
+          day: new Date().toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          }),
+        };
+
+        const existingLocations = locations;
+        existingLocations.push(newLocation);
+
+        // Save the updated array back to localStorage
+        setLocations(existingLocations);
         setShowResult(true);
         setIsCalculating(false); // Set to false when calculation ends
       }
@@ -386,8 +396,26 @@ export function Calculator(props: CalculatorProps) {
               )}
               <div className="grid grid-cols-4 text-primary-dark px-4">
                 <span className="text-lg col-span-2 lg:col-span-1">Total</span>
-                <span className="text-lg">R${totalEarningsByCurrency.BRL}</span>
-                <span className="text-lg hidden lg:block">Local</span>
+                <span className="text-lg">
+                  R${totalEarningsByCurrency.BRL.toFixed(2)}
+                </span>
+                <span className="text-lg hidden lg:block"></span>
+                <span className="text-lg"></span>
+              </div>
+              <div className="grid grid-cols-4 text-primary-dark px-4">
+                <span className="text-lg col-span-2 lg:col-span-1">Total</span>
+                <span className="text-lg">
+                  $${totalEarningsByCurrency.USD.toFixed(2)}
+                </span>
+                <span className="text-lg hidden lg:block"></span>
+                <span className="text-lg"></span>
+              </div>
+              <div className="grid grid-cols-4 text-primary-dark px-4">
+                <span className="text-lg col-span-2 lg:col-span-1">Total</span>
+                <span className="text-lg">
+                  €${totalEarningsByCurrency.EUR.toFixed(2)}
+                </span>
+                <span className="text-lg hidden lg:block"></span>
                 <span className="text-lg"></span>
               </div>
             </div>
@@ -421,7 +449,7 @@ export function Calculator(props: CalculatorProps) {
             onClick={downloadImage}
             className="mt-4 px-4 w-1/2 mx-auto py-2 text-2xl bg-primary font-secondary text-backgroun rounded-lg shadow-lg hover:bg-primary-dark focus:outline-none text-background"
           >
-           {translate("downloadCertificate")}
+            {translate("downloadCertificate")}
           </button>
         </div>
       </div>

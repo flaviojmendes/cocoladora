@@ -11,7 +11,7 @@ import { Place } from "../../entities/Place";
 import "leaflet/dist/leaflet.css";
 import { Modal } from "../Modal";
 import { Location } from "../../entities/Location";
-import { FaCheckSquare, FaSquare } from "react-icons/fa";
+import { FaCheckSquare, FaSquare, FaToiletPaper } from "react-icons/fa";
 import ReactGA from "react-ga4";
 import { translate } from "../../languages/translator";
 
@@ -130,6 +130,18 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
     return location !== null && (location as Location).city !== undefined;
   };
 
+  const renderIcons = (rating: number | undefined) => {
+    if (!rating) {
+      return null;
+    }
+    return Array.from({ length: 5 }, (_, index) => (
+      <FaToiletPaper
+        key={index}
+        className={index < rating ? "text-yellow-500" : "text-gray-300"}
+      />
+    ));
+  };
+
   return (
     <div className="mt-10">
       <div className="flex flex-col bg-background py-6de">
@@ -242,29 +254,39 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
               <h1 className="text-4xl font-primary text-secondary font-bold">
                 {clickedLocation.name}
               </h1>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-12 mt-12">
                 <div className="flex flex-col text-center">
                   <span className="text-2xl text-secondary ">
                     {translate("cleaness")}
                   </span>
-                  <span className="text-xl text-secondary-light">
-                    {clickedLocation.cleanRating}
+                  <span className="text-md mt-4 text-secondary-light flex items-center justify-center gap-1">
+                    {renderIcons(clickedLocation.cleanRating)}
                   </span>
+                  <span className="text-md text-secondary">
+                    {clickedLocation.cleanRating}/5
+                  </span>
+                  
                 </div>
                 <div className="flex flex-col text-center">
                   <span className="text-2xl text-secondary ">
                     {translate("facilities")}
                   </span>
-                  <span className="text-xl text-secondary-light">
-                    {clickedLocation.facilitiesRating}
+                  <span className="text-md mt-4 text-secondary-light flex items-center justify-center gap-1">
+                    {renderIcons(clickedLocation.facilitiesRating)}
+                  </span>
+                  <span className="text-md text-secondary-light">
+                    {clickedLocation.facilitiesRating}/5
                   </span>
                 </div>
                 <div className="flex flex-col text-center">
                   <span className="text-2xl text-secondary ">
                     {translate("privacy")}
                   </span>
-                  <span className="text-xl text-secondary-light">
-                    {clickedLocation.privacyRating}
+                  <span className="text-md mt-4 text-secondary-light flex items-center justify-center gap-1">
+                    {renderIcons(clickedLocation.privacyRating)}
+                  </span>
+                  <span className="text-md text-secondary-light">
+                    {clickedLocation.privacyRating}/5
                   </span>
                 </div>
               </div>
