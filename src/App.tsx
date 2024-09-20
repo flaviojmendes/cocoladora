@@ -77,6 +77,7 @@ function App() {
           </a>
         </div>
       </div>
+      <div className="flex flex-col w-full text-center mb-4">
       <div className="flex items-end w-fit mx-auto mb-4">
         <a target="_blank" href="https://instagram.com/trilhainfo">
           <img src="/caco.png" className="w-24 lg:w-32" />
@@ -86,6 +87,9 @@ function App() {
             Cocoladora
           </a>
         </h1>
+       
+      </div>
+      <h3 className="font-secondary text-xl text-background">{translate("subtitle")}</h3>
       </div>
 
       <Menu />

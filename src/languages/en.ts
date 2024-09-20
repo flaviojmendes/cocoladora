@@ -32,4 +32,5 @@ export const languageMap: { [key: string]: string } = {
   start: "Start",
   end: "End",
   totalEarned: "Total Earned",
+  subtitle: "How much do you make per 💩 at work?",
 };
