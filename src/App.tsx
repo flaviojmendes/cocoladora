@@ -27,7 +27,6 @@ function App() {
   useEffect(() => {
     fetchCocometerData();
     // get user language
-    console.log(navigator.language);
     if (!userLanguage) {
       setUserLanguage(navigator.language);
     }
