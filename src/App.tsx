@@ -3,6 +3,7 @@ import "./App.css";
 import ReactGA from "react-ga4";
 import GoogleMapComponent from "./components/GoogleMapsComponent";
 import { Location } from "./entities/Location";
+import { GiBrazilFlag, GiUsaFlag } from "react-icons/gi";
 
 import "odometer/themes/odometer-theme-minimal.css";
 import { Cocometer } from "./components/Cocometer";
@@ -10,6 +11,8 @@ import { Place } from "./entities/Place";
 import { ComponentType } from "./entities/ComponentType";
 import { Menu } from "./components/Menu";
 import { FaDonate, FaInstagram } from "react-icons/fa";
+import { translate } from "./languages/translator";
+import { useLocalStorage } from "@uidotdev/usehooks";
 
 function App() {
   ReactGA.initialize(import.meta.env.VITE_GOOGLE_ANALYTICS_ID);
@@ -20,9 +23,15 @@ function App() {
   });
 
   const [locations, setLocations] = useState<Location[]>([]);
+  const [userLanguage, setUserLanguage] = useLocalStorage("userLanguage", "pt");
 
   useEffect(() => {
     fetchCocometerData();
+    // get user language
+    console.log(navigator.language);
+    if (!userLanguage) {
+      setUserLanguage(navigator.language);
+    }
   }, []);
 
   const fetchCocometerData = async () => {
@@ -40,13 +49,30 @@ function App() {
   return (
     <div className="bg-secondary-light w-full h-full flex flex-col">
       {/* Sticky header */}
-      <div className="flex w-full justify-end text-background font-secondary text-center py-2 sticky top-0 text-xl px-2 lg:px-10 items-end bg-secondary bg-opacity-75 z-10 gap-4 shadow-sm">
-        <a href="https://instagram.com/trilhainfo" target="_blank">
-          <FaInstagram className="text-3xl lg:text-4xl" />
-        </a>
-        <a href="https://apoia.se/trilhainfo" target="_blank">
-          <FaDonate className="text-3xl lg:text-4xl" />
-        </a>
+      <div className="flex w-full text-background font-secondary text-center py-2 sticky top-0 text-xl px-2 lg:px-10 items-end bg-secondary bg-opacity-75 z-10 gap-4 shadow-sm">
+        <div className="flex gap-4 h-full">
+          <button
+            onClick={() => setUserLanguage("pt")}
+            className="cursor-pointer"
+          >
+            <span className="flex gap-1 items-center">PT<GiBrazilFlag /></span>
+          </button>
+          <div className="h-full border-l-2 border-l-background w-2">{" "}</div>
+          <button
+            onClick={() => setUserLanguage("en")}
+            className="cursor-pointer"
+          >
+             <span className="flex gap-1 items-center">EN<GiUsaFlag /></span>
+          </button>
+        </div>
+        <div className="flex grow justify-end gap-4">
+          <a href="https://instagram.com/trilhainfo" target="_blank">
+            <FaInstagram className="text-3xl lg:text-4xl" />
+          </a>
+          <a href="https://apoia.se/trilhainfo" target="_blank">
+            <FaDonate className="text-3xl lg:text-4xl" />
+          </a>
+        </div>
       </div>
       <div className="flex items-end w-fit mx-auto mb-4">
         <a target="_blank" href="https://instagram.com/trilhainfo">
@@ -67,11 +93,11 @@ function App() {
         <GoogleMapComponent locations={locations} />
       </div>
       <div className="text-background">
-        <Cocometer title="Cocômetro" locations={locations} />
+        <Cocometer title={translate("cocometer")} locations={locations} />
       </div>
       <footer className="flex w-full text-background font-primary text-center py-2 sticky text-3xl items-end">
         <div className="flex mx-auto items-center">
-          <span>Feito com 💩 por</span>
+          <span>{translate("madeWith")}</span>
           <a
             target="_blank"
             href="https://instagram.com/trilhainfo"

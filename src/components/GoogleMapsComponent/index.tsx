@@ -13,6 +13,7 @@ import { Modal } from "../Modal";
 import { Location } from "../../entities/Location";
 import { FaCheckSquare, FaSquare } from "react-icons/fa";
 import ReactGA from "react-ga4";
+import { translate } from "../../languages/translator";
 
 const containerStyle = {
   width: "100%",
@@ -243,19 +244,25 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
               </h1>
               <div className="grid grid-cols-3 gap-4">
                 <div className="flex flex-col text-center">
-                  <span className="text-2xl text-secondary ">Limpeza</span>
+                  <span className="text-2xl text-secondary ">
+                    {translate("cleaness")}
+                  </span>
                   <span className="text-xl text-secondary-light">
                     {clickedLocation.cleanRating}
                   </span>
                 </div>
                 <div className="flex flex-col text-center">
-                  <span className="text-2xl text-secondary ">Facilidades</span>
+                  <span className="text-2xl text-secondary ">
+                    {translate("facilities")}
+                  </span>
                   <span className="text-xl text-secondary-light">
                     {clickedLocation.facilitiesRating}
                   </span>
                 </div>
                 <div className="flex flex-col text-center">
-                  <span className="text-2xl text-secondary ">Privacidade</span>
+                  <span className="text-2xl text-secondary ">
+                    {translate("privacy")}
+                  </span>
                   <span className="text-xl text-secondary-light">
                     {clickedLocation.privacyRating}
                   </span>
@@ -264,14 +271,14 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
 
               <div className="flex flex-col mt-10 w-full">
                 <span className="text-2xl font-bold text-center">
-                  Comentários:{" "}
+                  {translate("commentsLabel")}{" "}
                 </span>
                 {clickedLocation.notes &&
                   Array.isArray(clickedLocation.notes) &&
                   clickedLocation.notes.map((note) => (
                     <span className="text-lg font-bold ">
                       <span className="text-secondary-light text-opacity-80">
-                        Anônimo:
+                        {translate("anonymous")}{" "}
                       </span>{" "}
                       {note}
                     </span>
@@ -291,13 +298,17 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
 
               <div className="grid grid-cols-2 gap-28 mt-12">
                 <div className="flex flex-col text-right">
-                  <span className="text-2xl text-secondary ">Início</span>
+                  <span className="text-2xl text-secondary ">
+                    {translate("start")}
+                  </span>
                   <span className="text-xl text-secondary-light">
                     {clickedLocation.timestarted}
                   </span>
                 </div>
                 <div className="flex flex-col text-start">
-                  <span className="text-2xl text-secondary ">Fim</span>
+                  <span className="text-2xl text-secondary ">
+                    {translate("end")}
+                  </span>
                   <span className="text-xl text-secondary-light">
                     {clickedLocation.timeended}
                   </span>
@@ -305,7 +316,9 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
               </div>
 
               <div className="flex flex-col text-center mt-10">
-                <span className="text-2xl text-secondary ">Total Ganho</span>
+                <span className="text-2xl text-secondary ">
+                  {translate("totalEarned")}
+                </span>
                 <span className="text-xl text-secondary-light">
                   {clickedLocation.totalearned}
                 </span>

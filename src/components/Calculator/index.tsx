@@ -17,6 +17,7 @@ import {
 import { Cocometer } from "../Cocometer";
 import { Location } from "../../entities/Location";
 import { ComponentType } from "../../entities/ComponentType";
+import { translate } from "../../languages/translator";
 
 interface CalculatorProps {
   selectedComponent: ComponentType | null;
@@ -237,7 +238,7 @@ export function Calculator(props: CalculatorProps) {
               >
                 <FaMoneyBill />
                 <span onClick={() => setShowHistory(!showHistory)}>
-                  Meu Contracheque
+                  {translate("myPaycheck")}
                 </span>
               </span>
               <span
@@ -247,7 +248,7 @@ export function Calculator(props: CalculatorProps) {
               >
                 <FaRegWindowClose />
                 <span onClick={() => setShowHistory(!showHistory)}>
-                  Fechar Contracheque
+                  {translate("closePaycheck")}
                 </span>
               </span>
             </div>
@@ -262,7 +263,7 @@ export function Calculator(props: CalculatorProps) {
             {/* Salary */}
             <div className="flex flex-col">
               <span className="text-xl mx-auto text-primary-dark font-semibold font-secondary">
-                Salário
+                {translate("salary")}
               </span>
               <div className="flex items-center border-4 border-primary-dark rounded-lg shadow-lg bg-white">
                 <select
@@ -288,7 +289,7 @@ export function Calculator(props: CalculatorProps) {
                   type="number"
                   max={99999}
                   min={1}
-                  placeholder="Quanto você ganha por mês?"
+                  placeholder={translate("howMuchMonth")}
                   className="w-full px-6 py-3 text-lg font-secondary font-semibold  text-secondary bg-white border-l-4 border-primary-dark rounded-r-full focus:outline-none placeholder-primary placeholder-opacity-80"
                 />
               </div>
@@ -298,7 +299,7 @@ export function Calculator(props: CalculatorProps) {
               {/* Hour Started */}
               <div className="flex flex-col grow">
                 <span className="text-xl mx-auto text-primary-dark font-semibold font-secondary">
-                  Que horas começou o 💩?
+                  {translate("whatTimeStartedPoop")}
                 </span>
                 <input
                   type="time"
@@ -312,7 +313,7 @@ export function Calculator(props: CalculatorProps) {
               {/* Hour Ended */}
               <div className="flex flex-col grow">
                 <span className="text-xl mx-auto text-primary-dark font-semibold font-secondary">
-                  Que horas terminou o 💩?
+                  {translate("whatTimeEndedPoop")}
                 </span>
                 <input
                   type="time"
@@ -331,7 +332,7 @@ export function Calculator(props: CalculatorProps) {
                 isCalculating ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
-              {isCalculating ? "Calculando..." : "Calcular"}
+              {isCalculating ? "Calculando..." : translate("calculate")}
             </button>
           </div>
           {/* History */}
@@ -341,7 +342,7 @@ export function Calculator(props: CalculatorProps) {
             } p-4 bg-white border-2 border-gray-300 rounded-lg shadow-md`}
           >
             <h2 className="text-primary-dark text-3xl mx-auto border-b-2 border-gray-300 pb-2">
-              Contracheque
+              {translate("paycheck")}
             </h2>
             <div className="flex flex-col gap-1 w-full">
               <div className="grid grid-cols-4 text-primary-dark px-4">
@@ -407,11 +408,11 @@ export function Calculator(props: CalculatorProps) {
             ref={resultRef}
           >
             <span className="text-4xl text-primary-dark font-semibold font-primary text-center">
-              Eu recebi{" "}
+              {translate("iveEarned")}{" "}
               <span className="font-bold text-primary text-5xl ">
                 {totalEarned}
               </span>{" "}
-              enquanto meditava no trono.
+              {translate("whileMeditating")}
             </span>
             <img src="/caco.png" className="w-32 mt-4" />
           </div>
@@ -420,7 +421,7 @@ export function Calculator(props: CalculatorProps) {
             onClick={downloadImage}
             className="mt-4 px-4 w-1/2 mx-auto py-2 text-2xl bg-primary font-secondary text-backgroun rounded-lg shadow-lg hover:bg-primary-dark focus:outline-none text-background"
           >
-            Baixar Certificado
+           {translate("downloadCertificate")}
           </button>
         </div>
       </div>

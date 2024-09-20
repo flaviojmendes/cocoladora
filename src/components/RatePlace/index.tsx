@@ -3,6 +3,7 @@ import { FaPoop, FaWindowClose } from "react-icons/fa";
 import { Place } from "../../entities/Place";
 import ReactGA from "react-ga4";
 import { ComponentType } from "../../entities/ComponentType";
+import { translate } from "../../languages/translator";
 
 function loadScript(src: string, position: HTMLElement | null, id: string) {
   if (!position) return;
@@ -279,12 +280,12 @@ export function RatePlace(props: RatePlaceProps) {
         <input
           ref={inputRef}
           type="text"
-          placeholder="Procure um lugar.."
+          placeholder={translate("searchPlace")}
           className="w-full mt-6 px-6 py-3 text-lg font-secondary text-center text-primary-dark font-semibold bg-white border-4 border-primary-dark rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 focus:ring-primary placeholder-primary placeholder-opacity-80"
         />
         <div ref={mapRef} style={{ height: "400px", width: "100%" }}></div>
         <div className="flex items-center gap-2 w-full text-xl font-secondary text-primary-dark">
-          <span>Avalie a Limpeza:</span>
+          <span>{translate("cleanessRate")}</span>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((rate) => (
               <FaPoop
@@ -302,7 +303,7 @@ export function RatePlace(props: RatePlaceProps) {
           </div>
         </div>
         <div className="flex items-center gap-2 w-full text-xl font-secondary text-primary-dark">
-          <span>Avalie as Facilidades:</span>
+          <span>{translate("facilitiesRate")}</span>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((rate) => (
               <FaPoop
@@ -320,7 +321,7 @@ export function RatePlace(props: RatePlaceProps) {
           </div>
         </div>
         <div className="flex items-center gap-2 w-full text-xl font-secondary text-primary-dark">
-          <span>Avalie a Privacidade:</span>
+          <span>{translate("privacyRate")}</span>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((rate) => (
               <FaPoop
@@ -338,7 +339,7 @@ export function RatePlace(props: RatePlaceProps) {
           </div>
         </div>
         <textarea
-          placeholder="Comentários..."
+          placeholder={translate("comments")}
           rows={2}
           maxLength={200}
           value={notes}
@@ -353,7 +354,7 @@ export function RatePlace(props: RatePlaceProps) {
             isRating ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
-          {isRating ? "Avaliando..." : "Avaliar"}
+          {isRating ? translate("rating") : translate("rate")}
         </button>
         {errorMessage && (
           <span className="text-red-500 text-lg font-secondary">

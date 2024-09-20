@@ -3,6 +3,7 @@ import { ComponentType } from "../../entities/ComponentType";
 import ReactGA from "react-ga4";
 import { Calculator } from "../Calculator";
 import { RatePlace } from "../RatePlace";
+import { translate } from "../../languages/translator";
 
 export function Menu() {
   const [selectedComponent, setSelectedComponent] =
@@ -27,7 +28,7 @@ export function Menu() {
               });
             }}
           >
-            Calcular um <img src="/caco.png" className="w-16"></img>
+            {translate("calculatePoop")}  <img src="/caco.png" className="w-16"></img>
           </button>
         </div>
         <div className={`w-full mt-10 justify-center lg:justify-start`}>
@@ -46,7 +47,7 @@ export function Menu() {
               });
             }}
           >
-            Avaliar um <img src="/sam.png" className="w-16"></img>
+            {translate("ratePoop")} <img src="/sam.png" className="w-16"></img>
           </button>
         </div>
       </div>
