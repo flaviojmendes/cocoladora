@@ -31,4 +31,6 @@ export const languageMap: { [key: string]: string } = {
   end: "Fim",
   totalEarned: "Total Recebido",
   subtitle: "Quanto você ganha por 💩 no trabalho?",
+  toiletDoor: "Porta do Banheiro",
+  writeMessage: "Escrever uma mensagem",
 };
