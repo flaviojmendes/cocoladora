@@ -33,4 +33,5 @@ export const languageMap: { [key: string]: string } = {
   subtitle: "Quanto você ganha por 💩 no trabalho?",
   toiletDoor: "Porta do Banheiro",
   writeMessage: "Escrever uma mensagem",
+  filled: "espaços foram preenchidos.",
 };

@@ -11,9 +11,9 @@ export function ToiletDoor() {
     fetch("https://retrievemessages-pzeq65kcvq-uc.a.run.app").then((response) =>
       response.json().then((data) => {
         data.forEach((msg: DoorMessage) => {
-            msg.style = getRandomStyle();
+          msg.style = getRandomStyle();
         });
-        
+
         setMessages(data);
       })
     );
@@ -50,8 +50,12 @@ export function ToiletDoor() {
         onClick={handleMessageClick}
         className="bg-primary text-background flex font-secondary text-2xl py-2 px-4 rounded-lg mb-4 items-center"
       >
-        {translate("writeMessage")}<img src="/dora.png" className="w-16 h-16 ml-2" />
+        {translate("writeMessage")}
+        <img src="/dora.png" className="w-16 h-16 ml-2" />
       </button>
+      <h2 className="text-background font-secondary text-2xl mb-4">
+        {messages.length}/20 {translate("filled")}
+      </h2>
       <div className="min-h-48 bg-background border-8 border-secondary relative w-full lg:w-1/2 h-96 rounded-lg shadow-lg select-none">
         <div className="absolute w-3 h-3 bg-yellow-500 top-1/2 right-4 transform -translate-y-1/2 rounded-full font-graffiti"></div>
         <div className="absolute w-2 h-8 bg-gray-700 top-1/2 right-2 transform -translate-y-1/2 rounded-sm"></div>
