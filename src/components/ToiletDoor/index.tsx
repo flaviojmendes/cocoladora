@@ -22,10 +22,10 @@ export function ToiletDoor() {
   const getRandomStyle = () => {
     const top = Math.random() * 80 + 10; // Random top position between 10% and 90%
     const left = Math.random() * 80 + 10; // Random left position between 10% and 90%
-    const rotation = Math.random() * 60 - 30; // Random rotation between -30deg and 30deg
+    const rotation = Math.random() * 60 - 10; // Random rotation between -30deg and 30deg
     return {
-      top: `${top}%`,
-      left: `${left}%`,
+    //   top: `${top}%`,
+    //   left: `${left}%`,
       transform: `rotate(${rotation}deg)`,
     };
   };
@@ -56,7 +56,23 @@ export function ToiletDoor() {
       <h2 className="text-background font-secondary text-2xl mb-4">
         {messages.length}/20 {translate("filled")}
       </h2>
-      <div className="min-h-48 bg-background border-8 border-secondary relative w-full lg:w-1/2 h-96 rounded-lg shadow-lg select-none">
+
+      <div className="min-h-48 flex p-4 flex-wrap gap-8 bg-background border-8 border-secondary  w-full lg:w-1/2 h-96 rounded-lg shadow-lg select-none">
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className="flex font-write max-w-20 -rotate-2"
+            // style={{
+            //   ...msg.style,
+            //   color: msg.fontColor,
+            // }}
+          >
+            {msg.message}
+          </div>
+        ))}
+      </div>
+
+      {/* <div className="min-h-48 bg-background border-8 border-secondary relative w-full lg:w-1/2 h-96 rounded-lg shadow-lg select-none">
         <div className="absolute w-3 h-3 bg-yellow-500 top-1/2 right-4 transform -translate-y-1/2 rounded-full font-graffiti"></div>
         <div className="absolute w-2 h-8 bg-gray-700 top-1/2 right-2 transform -translate-y-1/2 rounded-sm"></div>
         {messages.map((msg) => (
@@ -71,7 +87,7 @@ export function ToiletDoor() {
             {msg.message}
           </div>
         ))}
-      </div>
+      </div> */}
     </div>
   );
 }
