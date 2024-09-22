@@ -47,6 +47,7 @@ export function ToiletDoor() {
         {translate("toiletDoor")}
       </h1>
       <button
+      id="writeMessage"
         onClick={handleMessageClick}
         className="bg-primary text-background flex font-secondary text-2xl py-2 px-4 rounded-lg mb-4 items-center"
       >

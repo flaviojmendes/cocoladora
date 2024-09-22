@@ -11,10 +11,10 @@ export function Menu() {
 
   return (
     <div className="flex flex-col w-full px-2">
-      <div className="grid grid-cols-2 w-full gap-3">
-        <div className={`w-full mt-10 flex justify-center lg:justify-end`}>
+      <div className="flex w-full gap-3 justify-center">
+        <div className={`mt-10 flex justify-center lg:justify-end`}>
           <button
-            className={`flex bg-primary p-4 gap-2 w-fit font-secondary text-2xl cursor-pointer items-center text-background border-4 border-primary rounded-lg h-fit ${
+            className={`flex flex-col lg:flex-row bg-primary p-4 h-full gap-2 w-fit font-secondary text-2xl cursor-pointer items-center text-background border-4 border-primary rounded-lg ${
               selectedComponent === ComponentType.Calculator
                 ? "border-2 border-background"
                 : ""
@@ -28,12 +28,13 @@ export function Menu() {
               });
             }}
           >
-            {translate("calculatePoop")}  <img src="/caco.png" className="w-16"></img>
+            {translate("calculatePoop")}{" "}
+            <img src="/caco.png" className="w-16"></img>
           </button>
         </div>
-        <div className={`w-full mt-10 justify-center lg:justify-start`}>
+        <div className={`mt-10 justify-center lg:justify-start`}>
           <button
-            className={`flex bg-primary p-4 mx-auto lg:mx-0 gap-2 w-fit font-secondary text-2xl cursor-pointer items-center text-background border-4 border-primary rounded-lg h-fit  ${
+            className={`flex flex-col lg:flex-row bg-primary p-4 mx-auto lg:mx-0 gap-2 w-fit font-secondary text-2xl cursor-pointer items-center text-background border-4 border-primary rounded-lg h-full  ${
               selectedComponent === ComponentType.RatePlace
                 ? "border-2 border-background"
                 : ""
@@ -49,6 +50,14 @@ export function Menu() {
           >
             {translate("ratePoop")} <img src="/sam.png" className="w-16"></img>
           </button>
+        </div>
+        <div className={`mt-10 justify-center lg:justify-start`}>
+          <a
+            href="#writeMessage"
+            className={`flex flex-col lg:flex-row bg-primary p-4 mx-auto lg:mx-0 gap-2 w-fit font-secondary text-2xl cursor-pointer items-center text-background border-4 border-primary rounded-lg h-fit`}               >
+            {translate("writeMessage")}
+            <img src="/dora.png" className="w-16 h-16 ml-2" />
+          </a>
         </div>
       </div>
       <div className="flex">
