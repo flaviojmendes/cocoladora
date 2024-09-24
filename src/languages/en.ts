@@ -45,4 +45,5 @@ export const languageMap: { [key: string]: string } = {
   monthly: "Monthly",
   yearly: "Yearly",
   limitedSpaces: "(limited slots)",
+  shareCertificate: "Share"
 };

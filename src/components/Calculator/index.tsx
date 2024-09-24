@@ -111,6 +111,32 @@ export function Calculator(props: CalculatorProps) {
     return formattedEarnings;
   };
 
+  // Add this function to handle sharing
+  const shareImage = async () => {
+    if (navigator.share && resultRef.current) {
+      try {
+        const canvas = await html2canvas(resultRef.current, {
+          useCORS: true,
+          scale: 1,
+        });
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            const file = new File([blob], "result.png", { type: "image/png" });
+            await navigator.share({
+              title: "My Earnings",
+              text: "Check out my earnings while meditating!",
+              files: [file],
+            });
+          }
+        });
+      } catch (error) {
+        console.error("Error sharing the image:", error);
+      }
+    } else {
+      alert("Web Share API is not supported in your browser.");
+    }
+  };
+
   const handleCalculate = () => {
     setIsCalculating(true); // Set to true when calculation starts
 
@@ -231,7 +257,10 @@ export function Calculator(props: CalculatorProps) {
         label: window.location.pathname + window.location.search,
       });
 
-      html2canvas(resultRef.current).then((canvas) => {
+      html2canvas(resultRef.current, {
+        useCORS: true,
+        scale: 1,
+      }).then((canvas) => {
         const link = document.createElement("a");
         link.download = "result.png";
         link.href = canvas.toDataURL("image/png");
@@ -551,23 +580,42 @@ export function Calculator(props: CalculatorProps) {
           <div
             className="flex mx-auto flex-col items-center justify-center w-64 h-64 bg-background py-4"
             ref={resultRef}
+            style={{
+              padding: "20px",
+              backgroundColor: "",
+              width: "auto", // Ensure the width is 100%
+              height: "auto", // Ensure the height is auto
+            }}
           >
             <span className="text-4xl text-primary-dark font-semibold font-primary text-center">
               {translate("iveEarned")}{" "}
-              <span className="font-bold text-primary text-5xl ">
+              <span className="font-bold text-primary text-4xl ">
                 {totalEarned}
               </span>{" "}
               {translate("whileMeditating")}
             </span>
+
             <img src="/caco.png" className="w-32 mt-4" />
+            <span className="text-xl text-primary-dark font-semibold font-secondary text-center">
+              cocoladora.com
+            </span>
           </div>
-          {/* Download Button */}
-          <button
-            onClick={downloadImage}
-            className="mt-4 px-4 w-1/2 mx-auto py-2 text-2xl bg-primary font-secondary text-backgroun rounded-lg shadow-lg hover:bg-primary-dark focus:outline-none text-background"
-          >
-            {translate("downloadCertificate")}
-          </button>
+          <div className="flex gap-2">
+            {/* Download Button */}
+            <button
+              onClick={downloadImage}
+              className="mt-4 px-4 w-1/2 mx-auto py-2 text-2xl bg-primary font-secondary text-backgroun rounded-lg shadow-lg hover:bg-primary-dark focus:outline-none text-background"
+            >
+              {translate("downloadCertificate")}
+            </button>
+            {/* Share Button */}
+            <button
+              onClick={shareImage}
+              className="mt-4 px-4 w-1/2 mx-auto py-2 text-2xl lg:hidden bg-primary font-secondary text-background rounded-lg shadow-lg hover:bg-primary-dark focus:outline-none"
+            >
+              {translate("shareCertificate")}
+            </button>
+          </div>
         </div>
       </div>
     </div>
