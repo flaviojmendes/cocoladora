@@ -132,7 +132,22 @@ function App() {
       <div className="mt-0 z-0">
         <ToiletDoor />
       </div>
+      <div>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8916531836972282"
+          crossOrigin="anonymous"
+        ></script>
 
+        <ins
+          className="adsbygoogle"
+          data-ad-client="ca-pub-8916531836972282"
+          data-ad-slot="2241212696"
+          data-ad-format="auto"
+          data-full-width-responsive="true"
+        ></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+      </div>
       <div className="text-background">
         <Cocometer title={translate("cocometer")} locations={locations} />
       </div>
