@@ -133,11 +133,7 @@ function App() {
         <ToiletDoor />
       </div>
       <div className="w-full h-16">
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8916531836972282"
-          crossOrigin="anonymous"
-        ></script>
+        
 
         <ins
           className="adsbygoogle"
