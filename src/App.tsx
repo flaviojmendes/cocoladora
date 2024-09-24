@@ -132,7 +132,7 @@ function App() {
       <div className="mt-0 z-0">
         <ToiletDoor />
       </div>
-      <div>
+      <div className="w-full h-16">
         <script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8916531836972282"
