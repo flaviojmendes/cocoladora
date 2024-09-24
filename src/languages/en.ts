@@ -44,4 +44,5 @@ export const languageMap: { [key: string]: string } = {
   hourly: "Hourly",
   monthly: "Monthly",
   yearly: "Yearly",
+  limitedSpaces: "(limited slots)",
 };

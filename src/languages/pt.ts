@@ -42,4 +42,5 @@ export const languageMap: { [key: string]: string } = {
   hourly: "Por Hora",
   monthly: "Mensal",
   yearly: "Anual",
+  limitedSpaces: "(espaços limitados)",
 };
