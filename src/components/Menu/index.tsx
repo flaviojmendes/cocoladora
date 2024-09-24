@@ -29,7 +29,7 @@ export function Menu() {
             }}
           >
             {translate("calculatePoop")}{" "}
-            <img src="/caco.png" className="w-16"></img>
+            <img src="/caco.png" className="w-16 h-16"></img>
           </button>
         </div>
         <div className={`mt-10 justify-center lg:justify-start`}>
@@ -48,13 +48,13 @@ export function Menu() {
               });
             }}
           >
-            {translate("ratePoop")} <img src="/sam.png" className="w-16"></img>
+            {translate("ratePoop")} <img src="/sam.png" className="w-16 h-16"></img>
           </button>
         </div>
         <div className={`mt-10 justify-center lg:justify-start`}>
           <a
             href="#writeMessage"
-            className={`flex flex-col lg:flex-row bg-primary p-4 mx-auto lg:mx-0 gap-2 w-fit font-secondary text-2xl cursor-pointer items-center text-background border-4 border-primary rounded-lg h-fit`}               >
+            className={`flex flex-col text text-center lg:flex-row bg-primary p-4 mx-auto lg:mx-0 gap-2 w-fit font-secondary text-2xl cursor-pointer items-center text-background border-4 border-primary rounded-lg h-fit`}               >
             {translate("writeMessage")}
             <img src="/dora.png" className="w-16 h-16 ml-2" />
           </a>

@@ -4,6 +4,7 @@ import ReactGA from "react-ga4";
 
 import {
   FaCheck,
+  FaCog,
   FaHistory,
   FaMapPin,
   FaMoneyBill,
@@ -19,6 +20,7 @@ import { Location } from "../../entities/Location";
 import { ComponentType } from "../../entities/ComponentType";
 import { translate } from "../../languages/translator";
 import { useLocalStorage } from "@uidotdev/usehooks";
+import { SalaryConfig } from "../../entities/SalaryConfig";
 
 interface CalculatorProps {
   selectedComponent: ComponentType | null;
@@ -34,7 +36,17 @@ export function Calculator(props: CalculatorProps) {
   const [totalEarned, setTotalEarned] = useState<string>("");
   const [isCalculating, setIsCalculating] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [isSalaryConfigOpen, setIsSalaryConfigOpen] = useState(false);
   const [displayCalculator, setDisplayCalculator] = useState(false);
+  const [salaryConfig, setSalaryConfig] = useLocalStorage<SalaryConfig>(
+    "salaryConfig",
+    {
+      periodicity: "monthly",
+      hoursPerWeek: 44,
+    }
+  );
+  const [periodicity, setPeriodicity] = useState("monthly"); // Default value
+
   const [locations, setLocations] = useLocalStorage<Location[]>(
     "locations",
     []
@@ -66,8 +78,15 @@ export function Calculator(props: CalculatorProps) {
   const calculateIntervalSalary = () => {
     if (!salary || !hourStarted || !hourEnded) return 0;
 
-    const monthlyWorkingHours = 44 * 4; // 44 hours per week * 4 weeks
-    const hourlyRate = parseFloat(salary) / monthlyWorkingHours;
+    let hourlyRate = 0;
+
+    if (salaryConfig.periodicity === "hourly") {
+      hourlyRate = parseFloat(salary);
+    } else if (salaryConfig.periodicity === "monthly") {
+      hourlyRate = parseFloat(salary) / (salaryConfig.hoursPerWeek * 4);
+    } else if (salaryConfig.periodicity === "yearly") {
+      hourlyRate = parseFloat(salary) / (salaryConfig.hoursPerWeek * 4 * 12);
+    }
 
     const [startHour, startMinute] = hourStarted.split(":").map(Number);
     const [endHour, endMinute] = hourEnded.split(":").map(Number);
@@ -299,9 +318,107 @@ export function Calculator(props: CalculatorProps) {
                   type="number"
                   max={99999}
                   min={1}
-                  placeholder={translate("howMuchMonth")}
-                  className="w-full px-6 py-3 text-lg font-secondary font-semibold  text-secondary bg-white border-l-4 border-primary-dark rounded-r-full focus:outline-none placeholder-primary placeholder-opacity-80"
+                  placeholder={
+                    salaryConfig.periodicity === "hourly"
+                      ? translate("howMuchHour")
+                      : salaryConfig.periodicity === "monthly"
+                      ? translate("howMuchMonth")
+                      : translate("howMuchYear")
+                  }
+                  className="w-full px-6 py-3 text-lg font-secondary font-semibold text-secondary bg-white border-l-4 border-primary-dark rounded-r-full focus:outline-none placeholder-primary placeholder-opacity-80"
                 />
+                <button
+                  className="ml-2 p-2 text-primary-dark"
+                  onClick={() => setIsSalaryConfigOpen(!isSalaryConfigOpen)}
+                >
+                  <FaCog size={24} />
+                </button>
+              </div>
+              {/* Salary Config */}
+              <div
+                className={`flex flex-col bg-background-dark p-4 rounded-b-md transition-all duration-300 ${
+                  isSalaryConfigOpen
+                    ? "max-h-screen opacity-100"
+                    : "max-h-0 opacity-0 overflow-hidden"
+                }`}
+              >
+                <h2 className="font-secondary text-primary-dark mx-auto text-xl">
+                  {translate("salaryConfig")}
+                </h2>
+                <div className="flex gap-2 flex-col lg:flex-row">
+                  <div className="flex flex-col text-center grow">
+                    <label
+                      htmlFor="hoursPerWeek"
+                      className="font-secondary text-primary-dark"
+                    >
+                      {translate("hoursWeek")}
+                    </label>
+                    <input
+                      id="hoursPerWeek"
+                      type="number"
+                      value={salaryConfig.hoursPerWeek}
+                      onChange={(e) =>
+                        setSalaryConfig({
+                          ...salaryConfig,
+                          hoursPerWeek: parseInt(e.target.value, 10),
+                        })
+                      }
+                      className="h-full px-4 font-secondary py-3 text-lg bg-white rounded-md border-4 border-primary-dark focus:outline-none text-primary-dark font-semibold text-center"
+                    />
+                  </div>
+                  <div className="flex flex-col items-center grow text-primary-dark">
+                    <label htmlFor="mySalary" className="font-secondary ">
+                      {translate("mySalary")}
+                    </label>
+                    <div className="flex items-center">
+                      <button
+                        className={`bg-background p-2  border-4 border-primary-dark border-r-0 rounded-l-md ${
+                          salaryConfig.periodicity === "hourly"
+                            ? "bg-primary-dark text-background "
+                            : ""
+                        }`}
+                        onClick={() =>
+                          setSalaryConfig({
+                            ...salaryConfig,
+                            periodicity: "hourly",
+                          })
+                        }
+                      >
+                        {translate("hourly")}
+                      </button>
+                      <button
+                        className={`bg-background p-2  border-4 border-primary-dark ${
+                          salaryConfig.periodicity === "monthly"
+                            ? "bg-primary-dark text-background "
+                            : ""
+                        }`}
+                        onClick={() =>
+                          setSalaryConfig({
+                            ...salaryConfig,
+                            periodicity: "monthly",
+                          })
+                        }
+                      >
+                        {translate("monthly")}
+                      </button>
+                      <button
+                        className={`bg-background p-2  border-4 border-primary-dark border-l-0 rounded-r-md ${
+                          salaryConfig.periodicity === "yearly"
+                            ? "bg-primary-dark text-background "
+                            : ""
+                        }`}
+                        onClick={() =>
+                          setSalaryConfig({
+                            ...salaryConfig,
+                            periodicity: "yearly",
+                          })
+                        }
+                      >
+                        {translate("yearly")}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
