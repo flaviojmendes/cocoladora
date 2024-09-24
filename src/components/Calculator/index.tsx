@@ -115,6 +115,11 @@ export function Calculator(props: CalculatorProps) {
   const shareImage = async () => {
     if (navigator.share && resultRef.current) {
       try {
+        ReactGA.event({
+          category: "Share",
+          action: "Share Image",
+          label: window.location.pathname + window.location.search,
+        });
         const canvas = await html2canvas(resultRef.current, {
           useCORS: true,
           scale: 1,
