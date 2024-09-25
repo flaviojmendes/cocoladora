@@ -58,7 +58,7 @@ export function ToiletDoor() {
         {messages.length}/20 {translate("filled")}
       </h2>
 
-      <div className="min-h-48 flex p-4 flex-wrap gap-8 bg-background border-8 border-secondary  w-full lg:w-1/2 h-96 rounded-lg shadow-lg select-none">
+      <div className="min-h-96 flex p-4 flex-wrap gap-8 bg-background border-8 border-secondary  w-full lg:w-1/2 h-fit rounded-lg shadow-lg select-none">
         {messages.map((msg) => (
           <div
             key={msg.id}
