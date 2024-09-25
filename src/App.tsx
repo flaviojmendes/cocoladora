@@ -126,7 +126,7 @@ function App() {
             </a>
           </div>
         </div>
-        <div className="flex grow w-fit lg:hidden h-full text-sm text-center items-center gap-2 justify-center">
+        <div className="flex grow w-full lg:hidden h-full text-sm text-center items-center gap-2 justify-center">
           Quer aprender a desenvolver um app como esse? Acesse{" "}
           <button
             className="flex w-fit text-secondary-light rounded-md items-center gap-2 p-2 bg-background-dark hover:bg-primary hover:text-background"
