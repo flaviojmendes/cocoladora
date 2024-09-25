@@ -185,7 +185,7 @@ function App() {
             href="https://instagram.com/trilhainfo"
             className="cursor-pointer"
           >
-            <img src="/trilhainfo.webp" className="w-48 cursor-pointer" />
+            <img src="/trilhainfo.png" className="w-48 cursor-pointer" />
           </a>
         </div>
       </footer>
