@@ -52,7 +52,7 @@ export function ToiletDoor() {
         className="bg-primary text-background flex font-secondary text-2xl py-2 px-4 rounded-lg mb-4 items-center"
       >
         {translate("writeMessage")}
-        <img src="/dora.png" className="w-16 h-16 ml-2" />
+        <img src="/dora.webp" className="w-16 h-16 ml-2" />
       </button>
       <h2 className="text-background font-secondary text-2xl mb-4">
         {messages.length}/20 {translate("filled")}

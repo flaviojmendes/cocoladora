@@ -108,7 +108,7 @@ function App() {
       <div className="flex flex-col w-full text-center mb-4">
         <div className="flex items-end w-fit mx-auto mb-4">
           <a target="_blank" href="https://instagram.com/trilhainfo">
-            <img src="/caco.png" className="w-24 lg:w-32" />
+            <img src="/caco.webp" className="w-24 lg:w-32" />
           </a>
           <h1 className="text-4xl lg:text-6xl font-bold ml-4 font-primary text-background">
             <a target="_blank" href="https://instagram.com/trilhainfo">
@@ -155,7 +155,7 @@ function App() {
             href="https://instagram.com/trilhainfo"
             className="cursor-pointer"
           >
-            <img src="/trilhainfo.png" className="w-48 cursor-pointer" />
+            <img src="/trilhainfo.webp" className="w-48 cursor-pointer" />
           </a>
         </div>
       </footer>

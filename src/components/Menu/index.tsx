@@ -29,7 +29,7 @@ export function Menu() {
             }}
           >
             {translate("calculatePoop")}{" "}
-            <img src="/caco.png" className="w-16 h-16"></img>
+            <img src="/caco.webp" className="w-16 h-16"></img>
           </button>
         </div>
         <div className={`mt-10 justify-center lg:justify-start`}>
@@ -49,7 +49,7 @@ export function Menu() {
             }}
           >
             {translate("ratePoop")}{" "}
-            <img src="/sam.png" className="w-16 h-16"></img>
+            <img src="/sam.webp" className="w-16 h-16"></img>
           </button>
         </div>
         <div className={`mt-10 justify-center lg:justify-start`}>
@@ -61,7 +61,7 @@ export function Menu() {
               {translate("writeMessage")}
               <span className="text-sm">{translate("limitedSpaces")}</span>
             </div>
-            <img src="/dora.png" className="w-16 h-16 ml-2" />
+            <img src="/dora.webp" className="w-16 h-16 ml-2" />
           </a>
         </div>
       </div>

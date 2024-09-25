@@ -50,7 +50,7 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
   });
 
   const customIcon = new L.Icon({
-    iconUrl: "/sam.png", // Replace with the path to your custom icon
+    iconUrl: "/sam.webp", // Replace with the path to your custom icon
     iconSize: [30, 30], // Adjust the size as needed
     iconAnchor: [25, 50], // Adjust the anchor point as needed
   });
@@ -159,7 +159,7 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
             className="border-2 border-secondary bg-secondary-light items-center gap-2 text-background p-2 rounded-md flex font-bold text-2xl"
           >
             {displayMarkers.calculated ? <FaCheckSquare /> : <FaSquare />}{" "}
-            <img src="/caco.png" className="w-16 h-16" />
+            <img src="/caco.webp" className="w-16 h-16" />
           </button>
           <button
             onClick={() =>
@@ -171,7 +171,7 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
             className="border-2 border-secondary bg-secondary-light items-center gap-2 text-background p-2 rounded-md flex font-bold text-2xl"
           >
             {displayMarkers.rated ? <FaCheckSquare /> : <FaSquare />}{" "}
-            <img src="/sam.png" className="w-16 h-16" />
+            <img src="/sam.webp" className="w-16 h-16" />
           </button>
         </div>
       </div>
@@ -216,7 +216,7 @@ function GoogleMapComponent(props: GoogleMapComponentProps) {
           displayMarkers.calculated &&
           props.locations.map((location: Location) => {
             const customPoopIcon = new L.Icon({
-              iconUrl: "/caco.png", // Replace with the path to your custom icon
+              iconUrl: "/caco.webp", // Replace with the path to your custom icon
               iconSize: [30, 30], // Adjust the size as needed
               iconAnchor: [25, 50], // Adjust the anchor point as needed
             });

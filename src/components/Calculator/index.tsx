@@ -600,7 +600,7 @@ export function Calculator(props: CalculatorProps) {
               {translate("whileMeditating")}
             </span>
 
-            <img src="/caco.png" className="w-32 mt-4" />
+            <img src="/caco.webp" className="w-32 mt-4" />
             <span className="text-xl text-primary-dark font-semibold font-secondary text-center">
               cocoladora.com
             </span>
