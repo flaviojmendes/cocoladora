@@ -14,6 +14,15 @@ import {
   FaStop,
   FaTimes,
   FaTrash,
+  FaCoffee,
+  FaPizzaSlice,
+  FaGamepad,
+  FaVolumeUp,
+  FaExclamationTriangle,
+  FaKeyboard,
+  FaWater,
+  FaFileAlt,
+  FaUserSecret,
 } from "react-icons/fa";
 
 import { Location } from "../../entities/Location";
@@ -21,16 +30,20 @@ import { ComponentType } from "../../entities/ComponentType";
 import { translate } from "../../languages/translator";
 import { SalaryConfig } from "../../entities/SalaryConfig";
 import { StorageService } from "../../services/storage";
+import { AudioService } from "../../utils/audio";
+import { AchievementService } from "../../utils/achievements";
 
 interface CalculatorProps {
   selectedComponent: ComponentType | null;
   setSelectedComponent: (component: ComponentType | null) => void;
+  locations?: Location[];
   onLocationsUpdated?: (locations: Location[]) => void;
 }
 
 export function Calculator({
   selectedComponent,
   setSelectedComponent,
+  locations: propLocations,
   onLocationsUpdated,
 }: CalculatorProps) {
   const [salary, setSalary] = useState<string>("5000");
@@ -46,10 +59,20 @@ export function Calculator({
   const [totalEarned, setTotalEarned] = useState<string>("");
   const [earnedNumeric, setEarnedNumeric] = useState<number>(0);
   const [sessionMinutes, setSessionMinutes] = useState<number>(20);
-  const [locations, setLocations] = useState<Location[]>([]);
+  const [locations, setLocations] = useState<Location[]>(propLocations || []);
+  const [showStealthBoard, setShowStealthBoard] = useState(false);
 
   useEffect(() => {
-    StorageService.getLocations().then((data) => setLocations(data));
+    if (propLocations && propLocations.length > 0) {
+      setLocations(propLocations);
+    }
+  }, [propLocations]);
+
+  useEffect(() => {
+    StorageService.getLocations().then((data) => {
+      setLocations(data);
+      onLocationsUpdated?.(data);
+    });
   }, []);
 
   // Live Timer Mode
@@ -57,6 +80,7 @@ export function Calculator({
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [timerStartTimestamp, setTimerStartTimestamp] = useState<Date | null>(null);
+  const [numbnessAlertShown, setNumbnessAlertShown] = useState(false);
 
   const resultRef = useRef<HTMLDivElement>(null);
 
@@ -64,6 +88,7 @@ export function Calculator({
   const handleUpdateSalaryConfig = (newConfig: SalaryConfig) => {
     setSalaryConfig(newConfig);
     StorageService.saveSalaryConfig(newConfig);
+    AudioService.playPop();
   };
 
   // Live timer interval
@@ -71,7 +96,16 @@ export function Calculator({
     let interval: ReturnType<typeof setInterval>;
     if (timerRunning) {
       interval = setInterval(() => {
-        setTimerSeconds((prev) => prev + 1);
+        setTimerSeconds((prev) => {
+          const next = prev + 1;
+          // Leg numbness check at 15 minutes (900 seconds)
+          if (next === 900) {
+            AudioService.playTingleWarning();
+            setNumbnessAlertShown(true);
+            AchievementService.unlock("tingle_survivor");
+          }
+          return next;
+        });
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -90,18 +124,6 @@ export function Calculator({
     return s / (hours * 4.33);
   };
 
-  const getCurrencySymbol = (cur: string) => {
-    switch (cur) {
-      case "BRL":
-        return "R$";
-      case "EUR":
-        return "€";
-      case "USD":
-      default:
-        return "$";
-    }
-  };
-
   const formatMoney = (amount: number, cur: string) => {
     return new Intl.NumberFormat(cur === "BRL" ? "pt-BR" : "en-US", {
       style: "currency",
@@ -116,9 +138,27 @@ export function Calculator({
     return Math.max(0, val);
   };
 
+  // Calculate live items purchasable
+  const getPurchasingPower = (earned: number, cur: string) => {
+    // Estimated approximate unit prices based on currency
+    const prices = {
+      BRL: { coffee: 7, coxinha: 9, streamingHour: 2.5, pizza: 45 },
+      USD: { coffee: 4, coxinha: 5, streamingHour: 0.8, pizza: 18 },
+      EUR: { coffee: 3.5, coxinha: 4.5, streamingHour: 0.7, pizza: 14 },
+    }[cur as "BRL" | "USD" | "EUR"] || { coffee: 4, coxinha: 5, streamingHour: 0.8, pizza: 18 };
+
+    const coffees = Math.floor(earned / prices.coffee);
+    const coxinhas = Math.floor(earned / prices.coxinha);
+    const streaming = (earned / prices.streamingHour).toFixed(1);
+
+    return { coffees, coxinhas, streaming };
+  };
+
   // Handle Manual Calculation
   const handleCalculateManual = () => {
     if (!salary || !hourStarted || !hourEnded) return;
+
+    AudioService.playCoin();
 
     const [startH, startM] = hourStarted.split(":").map(Number);
     const [endH, endM] = hourEnded.split(":").map(Number);
@@ -140,20 +180,29 @@ export function Calculator({
     setTotalEarned(formatted);
     setShowResult(true);
 
+    if (duration >= 30) {
+      AchievementService.unlock("deep_meditation");
+    }
+    AchievementService.unlock("first_calc");
+
     saveSessionRecord(formatted, hourStarted, hourEnded);
   };
 
   // Start Live Timer
   const handleStartTimer = () => {
+    AudioService.playPop();
     const now = new Date();
     setTimerStartTimestamp(now);
     setTimerSeconds(0);
     setTimerRunning(true);
     setShowResult(false);
+    setNumbnessAlertShown(false);
   };
 
   // Stop Live Timer and calculate
   const handleStopTimer = () => {
+    AudioService.playFlush();
+    AudioService.playCoin();
     setTimerRunning(false);
     const now = new Date();
     const start = timerStartTimestamp || now;
@@ -171,6 +220,11 @@ export function Calculator({
     setEarnedNumeric(earnedVal);
     setTotalEarned(formatted);
     setShowResult(true);
+
+    if (durationMinutes >= 30 || timerSeconds >= 1800) {
+      AchievementService.unlock("deep_meditation");
+    }
+    AchievementService.unlock("first_calc");
 
     saveSessionRecord(formatted, `${startH}:${startM}`, `${endH}:${endM}`);
   };
@@ -206,6 +260,7 @@ export function Calculator({
   };
 
   const handleDeleteLocation = async (index: number) => {
+    AudioService.playPop();
     const target = locations[index];
     const updated = await StorageService.removeLocation(target?.id, index);
     setLocations(updated);
@@ -214,6 +269,7 @@ export function Calculator({
 
   const handleClearHistory = async () => {
     if (window.confirm(translate("confirmClear"))) {
+      AudioService.playFlush();
       const updated = await StorageService.clearLocations();
       setLocations(updated);
       onLocationsUpdated?.(updated);
@@ -222,6 +278,7 @@ export function Calculator({
 
   const downloadCertificate = () => {
     if (!resultRef.current) return;
+    AudioService.playPop();
     try {
       ReactGA.event({
         category: "Download",
@@ -243,6 +300,7 @@ export function Calculator({
   };
 
   const shareCertificate = async () => {
+    AudioService.playPop();
     if (navigator.share && resultRef.current) {
       try {
         const canvas = await html2canvas(resultRef.current, {
@@ -276,13 +334,18 @@ export function Calculator({
 
   // Calculate live ticker earned
   const liveEarnedNow = calculateEarnedAmount(timerSeconds / 60);
+  const livePower = getPurchasingPower(liveEarnedNow, currency);
+  const resultPower = getPurchasingPower(earnedNumeric, currency);
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4 mt-6">
       <div className="relative bg-background text-secondary rounded-2xl border-4 border-primary p-6 sm:p-8 shadow-xl">
         {/* Close Button */}
         <button
-          onClick={() => setSelectedComponent(null)}
+          onClick={() => {
+            AudioService.playPop();
+            setSelectedComponent(null);
+          }}
           aria-label={translate("close")}
           className="absolute top-4 right-4 text-primary hover:text-primary-dark transition-colors p-2 rounded-lg hover:bg-background-dark focus:outline-none"
         >
@@ -293,20 +356,28 @@ export function Calculator({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b-2 border-primary/20 mb-6 gap-3">
           <div className="flex items-center gap-3">
             <span className="text-3xl">🚽</span>
-            <h2 className="font-primary text-3xl sm:text-4xl text-primary font-bold">
-              {translate("calculatePoop")} 💩
-            </h2>
+            <div>
+              <h2 className="font-primary text-3xl sm:text-4xl text-primary font-bold">
+                {translate("calculatePoop")} 💩
+              </h2>
+              <p className="font-secondary text-sm sm:text-base text-secondary-light">
+                {translate("calcIntroSubtitle")}
+              </p>
+            </div>
           </div>
 
           <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="flex items-center gap-2 font-secondary text-lg sm:text-xl text-primary-dark hover:text-primary bg-background-dark/80 px-4 py-2 rounded-lg border-2 border-primary/30 transition-all self-start sm:self-auto"
+            onClick={() => {
+              AudioService.playPop();
+              setShowHistory(!showHistory);
+            }}
+            className="flex items-center gap-2 font-secondary text-lg sm:text-xl text-primary-dark hover:text-primary bg-background-dark/80 px-4 py-2 rounded-lg border-2 border-primary/30 transition-all self-start sm:self-auto hover:scale-105 active:scale-95"
           >
             <FaHistory />
             <span>
               {showHistory ? translate("closePaycheck") : translate("myPaycheck")}
             </span>
-            <span className="bg-primary text-background text-xs px-2 py-0.5 rounded-full font-typewriter">
+            <span className="bg-primary text-background text-xs px-2 py-0.5 rounded-full font-typewriter font-bold">
               {locations.length}
             </span>
           </button>
@@ -317,13 +388,18 @@ export function Calculator({
           /* Paycheck History View */
           <div className="flex flex-col gap-4 font-typewriter">
             <div className="flex items-center justify-between">
-              <h3 className="font-primary text-3xl text-primary-dark">
-                {translate("paycheck")}
-              </h3>
+              <div>
+                <h3 className="font-primary text-3xl text-primary-dark">
+                  {translate("paycheck")}
+                </h3>
+                <p className="font-secondary text-sm text-secondary-light">
+                  {translate("paycheckNote")}
+                </p>
+              </div>
               {locations.length > 0 && (
                 <button
                   onClick={handleClearHistory}
-                  className="flex items-center gap-1 text-sm text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg border border-red-200 transition-colors"
+                  className="flex items-center gap-1.5 text-sm text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg border border-red-200 transition-colors"
                 >
                   <FaTrash size={12} />
                   <span>{translate("clearHistory")}</span>
@@ -361,7 +437,7 @@ export function Calculator({
                         </td>
                         <td className="py-2.5 px-3">
                           <span className="truncate block max-w-[160px] sm:max-w-xs">
-                            {loc.city || "Throne Room"}
+                            {loc.city || "Meu Trono"}
                           </span>
                         </td>
                         <td className="py-2.5 px-3 text-right font-bold text-primary whitespace-nowrap">
@@ -391,7 +467,10 @@ export function Calculator({
               <div className="flex bg-background-dark p-1.5 rounded-xl border-2 border-primary/20 gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsLiveMode(false)}
+                  onClick={() => {
+                    AudioService.playPop();
+                    setIsLiveMode(false);
+                  }}
                   className={`flex-1 py-2 px-4 rounded-lg font-secondary text-lg transition-all ${
                     !isLiveMode
                       ? "bg-primary text-background font-bold shadow-md"
@@ -402,7 +481,10 @@ export function Calculator({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsLiveMode(true)}
+                  onClick={() => {
+                    AudioService.playPop();
+                    setIsLiveMode(true);
+                  }}
                   className={`flex-1 py-2 px-4 rounded-lg font-secondary text-lg transition-all flex items-center justify-center gap-2 ${
                     isLiveMode
                       ? "bg-primary text-background font-bold shadow-md"
@@ -426,18 +508,25 @@ export function Calculator({
                   </label>
                   <button
                     type="button"
-                    onClick={() => setIsSalaryConfigOpen(!isSalaryConfigOpen)}
-                    className="text-primary hover:text-primary-dark p-1.5 rounded-lg hover:bg-background-dark transition-colors"
+                    onClick={() => {
+                      AudioService.playPop();
+                      setIsSalaryConfigOpen(!isSalaryConfigOpen);
+                    }}
+                    className="text-primary hover:text-primary-dark p-1.5 rounded-lg hover:bg-background-dark transition-colors flex items-center gap-1 text-sm font-secondary"
                     title={translate("salaryConfig")}
                   >
-                    <FaCog size={20} />
+                    <FaCog size={16} />
+                    <span>Config</span>
                   </button>
                 </div>
 
                 <div className="flex items-center rounded-lg border-2 border-primary-dark overflow-hidden focus-within:ring-2 focus-within:ring-primary">
                   <select
                     value={currency}
-                    onChange={(e) => setCurrency(e.target.value)}
+                    onChange={(e) => {
+                      setCurrency(e.target.value);
+                      AudioService.playPop();
+                    }}
                     aria-label="Currency"
                     className="bg-background-dark font-secondary text-lg font-bold text-primary-dark py-3 px-3 border-r-2 border-primary-dark focus:outline-none cursor-pointer"
                   >
@@ -563,11 +652,38 @@ export function Calculator({
                   </div>
 
                   {timerRunning && (
-                    <div className="bg-amber-50 px-4 py-2 rounded-lg border border-amber-200 text-primary-dark font-secondary text-lg animate-pulse">
-                      {translate("earnedSoFar")}{" "}
-                      <span className="font-bold text-primary font-typewriter">
-                        {formatMoney(liveEarnedNow, currency)}
-                      </span>
+                    <div className="w-full flex flex-col items-center gap-2">
+                      <div className="bg-amber-50 px-4 py-2 rounded-lg border border-amber-200 text-primary-dark font-secondary text-lg animate-pulse w-full max-w-sm">
+                        {translate("earnedSoFar")}{" "}
+                        <span className="font-bold text-primary font-typewriter text-xl">
+                          {formatMoney(liveEarnedNow, currency)}
+                        </span>
+                      </div>
+
+                      {/* Live Purchasing Equivalence */}
+                      <div className="flex items-center justify-center gap-4 text-xs font-secondary text-secondary-light">
+                        <span className="flex items-center gap-1">
+                          <FaCoffee className="text-amber-700" /> {livePower.coffees} {translate("coffees")}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <FaPizzaSlice className="text-orange-600" /> {livePower.coxinhas} {translate("snacks")}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Leg Numbness Warning Alert */}
+                  {numbnessAlertShown && (
+                    <div className="w-full bg-red-50 border-2 border-red-300 rounded-xl p-3 flex items-center gap-3 text-left transition-all duration-300 animate-pulse">
+                      <FaExclamationTriangle className="text-red-600 text-2xl shrink-0" />
+                      <div>
+                        <span className="font-secondary text-red-800 font-bold text-base block">
+                          {translate("numbnessWarningTitle")}
+                        </span>
+                        <span className="font-secondary text-red-700 text-xs block">
+                          {translate("numbnessWarningDesc")}
+                        </span>
+                      </div>
                     </div>
                   )}
 
@@ -590,6 +706,58 @@ export function Calculator({
                       <span>{translate("stopTimer")}</span>
                     </button>
                   )}
+
+                  {/* Stealth Soundboard Button */}
+                  <div className="w-full pt-2 border-t border-primary/20">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        AudioService.playPop();
+                        setShowStealthBoard(!showStealthBoard);
+                      }}
+                      className="text-xs sm:text-sm font-secondary text-primary-dark hover:text-primary flex items-center justify-center gap-1.5 mx-auto"
+                    >
+                      <FaUserSecret />
+                      <span>{showStealthBoard ? translate("hideStealth") : translate("openStealth")}</span>
+                    </button>
+
+                    {showStealthBoard && (
+                      <div className="mt-3 p-3 bg-background-dark/70 rounded-xl border border-primary/30 flex flex-wrap justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => AudioService.playStealthSound("keyboard")}
+                          className="px-3 py-1.5 rounded-lg bg-white border border-primary/30 hover:bg-amber-50 text-xs font-secondary font-bold text-primary-dark flex items-center gap-1.5 transition-transform active:scale-95 shadow-sm"
+                        >
+                          <FaKeyboard />
+                          <span>{translate("stealthTyping")}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => AudioService.playStealthSound("faucet")}
+                          className="px-3 py-1.5 rounded-lg bg-white border border-primary/30 hover:bg-amber-50 text-xs font-secondary font-bold text-primary-dark flex items-center gap-1.5 transition-transform active:scale-95 shadow-sm"
+                        >
+                          <FaWater />
+                          <span>{translate("stealthWater")}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => AudioService.playStealthSound("cough")}
+                          className="px-3 py-1.5 rounded-lg bg-white border border-primary/30 hover:bg-amber-50 text-xs font-secondary font-bold text-primary-dark flex items-center gap-1.5 transition-transform active:scale-95 shadow-sm"
+                        >
+                          <FaVolumeUp />
+                          <span>{translate("stealthCough")}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => AudioService.playStealthSound("papers")}
+                          className="px-3 py-1.5 rounded-lg bg-white border border-primary/30 hover:bg-amber-50 text-xs font-secondary font-bold text-primary-dark flex items-center gap-1.5 transition-transform active:scale-95 shadow-sm"
+                        >
+                          <FaFileAlt />
+                          <span>{translate("stealthPapers")}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -622,10 +790,16 @@ export function Calculator({
                     </p>
 
                     <p className="font-secondary text-base text-secondary-light">
-                      {translate("whileMeditating")}
+                      {translate("whileMeditating")} ({sessionMinutes} min)
                     </p>
 
-                    <div className="mt-4 pt-3 border-t border-primary/20 w-full flex items-center justify-between text-xs font-typewriter text-secondary-light">
+                    {/* Purchasing Power Equivalence in Certificate */}
+                    <div className="my-3 py-2 px-3 bg-background-dark/70 rounded-xl border border-primary/20 w-full text-xs font-secondary text-primary-dark flex items-center justify-around">
+                      <span title="Cafés">☕ {resultPower.coffees} cafés</span>
+                      <span title="Lanches">🥐 {resultPower.coxinhas} lanches</span>
+                    </div>
+
+                    <div className="mt-2 pt-3 border-t border-primary/20 w-full flex items-center justify-between text-xs font-typewriter text-secondary-light">
                       <span>{new Date().toLocaleDateString()}</span>
                       <span className="font-bold text-primary">cocoladora.com</span>
                     </div>
@@ -656,7 +830,10 @@ export function Calculator({
                 <div className="hidden lg:flex flex-col items-center justify-center p-8 bg-background-dark/60 rounded-2xl border-2 border-dashed border-primary/30 text-center w-full min-h-[340px]">
                   <img src="/caco.webp" alt="Mascot" className="w-24 h-24 mb-4 opacity-75" />
                   <p className="font-secondary text-xl text-primary-dark font-semibold">
-                    Preencha seu salário e horário para emitir seu certificado de remuneração!
+                    {translate("calcEmptyCta")}
+                  </p>
+                  <p className="font-secondary text-sm text-secondary-light mt-1">
+                    {translate("calcEmptyHint")}
                   </p>
                 </div>
               )}

@@ -82,12 +82,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === "DELETE") {
       const { id } = req.query;
-      if (id) {
-        const idNum = parseInt(String(id), 10);
-        await sql`DELETE FROM locations WHERE id = ${idNum};`;
-      } else {
-        await sql`DELETE FROM locations;`;
+      if (!id) {
+        return res.status(400).json({ error: "Missing required query parameter: id" });
       }
+      const idNum = parseInt(String(id), 10);
+      if (isNaN(idNum)) {
+        return res.status(400).json({ error: "Invalid location id" });
+      }
+      await sql`DELETE FROM locations WHERE id = ${idNum};`;
       return res.status(200).json({ success: true });
     }
 

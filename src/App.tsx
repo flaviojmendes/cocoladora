@@ -7,15 +7,20 @@ import { Place } from "./entities/Place";
 import { GiBrazilFlag, GiUsaFlag } from "react-icons/gi";
 import { Cocometer } from "./components/Cocometer";
 import { Menu } from "./components/Menu";
-import { FaDonate, FaInstagram, FaPaypal, FaRocket } from "react-icons/fa";
+import { FaDonate, FaInstagram, FaPaypal, FaRocket, FaVolumeUp, FaVolumeMute } from "react-icons/fa";
 import { translate } from "./languages/translator";
 import { ToiletDoor } from "./components/ToiletDoor";
 import { ApiService } from "./services/api";
+import { AnnualProjections } from "./components/AnnualProjections";
+import { ThroneEntertainment } from "./components/ThroneEntertainment";
+import { TrophyCase } from "./components/TrophyCase";
+import { AudioService } from "./utils/audio";
 
 function App() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [places, setPlaces] = useState<{ [key: string]: Place }>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(() => AudioService.getSoundEnabled());
 
   const [currentLang, setCurrentLang] = useState<string>(() => {
     try {
@@ -74,10 +79,16 @@ function App() {
   }, []);
 
   const changeLanguage = (lang: string) => {
+    AudioService.playPop();
     setCurrentLang(lang);
     localStorage.setItem("userLanguage", JSON.stringify(lang));
     // Force a minimal state update to re-render translations
     setLocations((prev) => [...prev]);
+  };
+
+  const toggleMasterSound = () => {
+    const next = AudioService.toggleSound();
+    setSoundEnabled(next);
   };
 
   const handleLocationsUpdated = (updatedLocations: Location[]) => {
@@ -89,6 +100,7 @@ function App() {
   };
 
   const openZeroToMVP = () => {
+    AudioService.playPop();
     try {
       ReactGA.event({
         category: "ZeroToMVP",
@@ -104,39 +116,60 @@ function App() {
       {/* Top Bar Navigation */}
       <header className="sticky top-0 z-50 w-full bg-[#292420]/95 backdrop-blur-md border-b border-primary/30 py-2.5 px-4 sm:px-8 shadow-md">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
-          {/* Language Switcher */}
-          <div className="flex items-center gap-2 bg-background/10 py-1 px-2.5 rounded-lg border border-background/20">
+          {/* Left Controls: Language Switcher, Audio Toggle & Trophy Case */}
+          <div className="flex items-center gap-2">
+            {/* Language Switcher */}
+            <div className="flex items-center gap-1.5 bg-background/10 py-1 px-2.5 rounded-lg border border-background/20">
+              <button
+                type="button"
+                onClick={() => changeLanguage("pt")}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded text-sm sm:text-base font-secondary transition-all ${
+                  currentLang.includes("pt")
+                    ? "bg-primary text-background font-bold shadow-sm"
+                    : "text-background/70 hover:text-background"
+                }`}
+              >
+                <span>PT</span>
+                <GiBrazilFlag className="text-lg" />
+              </button>
+
+              <div className="w-[1px] h-4 bg-background/30" />
+
+              <button
+                type="button"
+                onClick={() => changeLanguage("en")}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded text-sm sm:text-base font-secondary transition-all ${
+                  currentLang.includes("en")
+                    ? "bg-primary text-background font-bold shadow-sm"
+                    : "text-background/70 hover:text-background"
+                }`}
+              >
+                <span>EN</span>
+                <GiUsaFlag className="text-lg" />
+              </button>
+            </div>
+
+            {/* Master Sound FX Toggle */}
             <button
               type="button"
-              onClick={() => changeLanguage("pt")}
-              className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-sm sm:text-base font-secondary transition-all ${
-                currentLang.includes("pt")
-                  ? "bg-primary text-background font-bold shadow-sm"
-                  : "text-background/70 hover:text-background"
+              onClick={toggleMasterSound}
+              aria-label={soundEnabled ? "Desativar sons" : "Ativar sons"}
+              title={soundEnabled ? "Sons Ativados" : "Sons Mutados"}
+              className={`p-2 rounded-lg border transition-all ${
+                soundEnabled
+                  ? "bg-primary/80 border-primary-light text-amber-300"
+                  : "bg-background/10 border-background/20 text-background/50 hover:text-background"
               }`}
             >
-              <span>PT</span>
-              <GiBrazilFlag className="text-lg" />
+              {soundEnabled ? <FaVolumeUp size={16} /> : <FaVolumeMute size={16} />}
             </button>
 
-            <div className="w-[1px] h-4 bg-background/30" />
-
-            <button
-              type="button"
-              onClick={() => changeLanguage("en")}
-              className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-sm sm:text-base font-secondary transition-all ${
-                currentLang.includes("en")
-                  ? "bg-primary text-background font-bold shadow-sm"
-                  : "text-background/70 hover:text-background"
-              }`}
-            >
-              <span>EN</span>
-              <GiUsaFlag className="text-lg" />
-            </button>
+            {/* Achievements Trophy Case */}
+            <TrophyCase />
           </div>
 
           {/* Do Zero ao MVP Link */}
-          <div className="hidden md:flex items-center gap-2 text-sm sm:text-base font-secondary text-background/90">
+          <div className="hidden lg:flex items-center gap-2 text-sm sm:text-base font-secondary text-background/90">
             <span>Quer aprender a desenvolver um produto como esse?</span>
             <button
               type="button"
@@ -181,7 +214,7 @@ function App() {
         </div>
 
         {/* Mobile Promo Banner */}
-        <div className="flex md:hidden items-center justify-center gap-2 pt-2 mt-2 border-t border-background/10 text-xs font-secondary text-background/90">
+        <div className="flex lg:hidden items-center justify-center gap-2 pt-2 mt-2 border-t border-background/10 text-xs font-secondary text-background/90">
           <span>Quer criar um app como esse?</span>
           <button
             type="button"
@@ -226,11 +259,17 @@ function App() {
           onPlaceAdded={handlePlaceAdded}
         />
 
-        {/* Leaflet Interactive Map */}
-        <GoogleMapComponent locations={locations} places={places} />
+        {/* Annual Projections ROI Calculator */}
+        <AnnualProjections />
+
+        {/* Offline Throne Entertainment Pastimes */}
+        <ThroneEntertainment />
 
         {/* Community Toilet Door */}
         <ToiletDoor />
+
+        {/* Leaflet Interactive Map */}
+        <GoogleMapComponent locations={locations} places={places} />
 
         {/* Global Cocometer Odometer */}
         <Cocometer title={translate("cocometer")} locations={locations} />

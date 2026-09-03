@@ -9,6 +9,36 @@ type CocometerProps = {
   title: string;
 };
 
+function parseCurrencyString(val: string | number | undefined): number {
+  if (typeof val === "number") return val;
+  if (!val || typeof val !== "string") return 0;
+
+  // Handle standard pt-BR format where comma is the decimal separator (e.g. "R$ 11,37" or "1.234,56")
+  if (val.includes(",") && !val.includes(".")) {
+    const cleaned = val.replace(/[^\d,-]/g, "").replace(",", ".");
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
+  }
+  if (val.includes(",") && val.includes(".")) {
+    const lastComma = val.lastIndexOf(",");
+    const lastDot = val.lastIndexOf(".");
+    if (lastComma > lastDot) {
+      // e.g. "1.234,56"
+      const cleaned = val.replace(/\./g, "").replace(",", ".");
+      const num = parseFloat(cleaned.replace(/[^\d.-]/g, ""));
+      return isNaN(num) ? 0 : num;
+    } else {
+      // e.g. "1,234.56"
+      const cleaned = val.replace(/,/g, "");
+      const num = parseFloat(cleaned.replace(/[^\d.-]/g, ""));
+      return isNaN(num) ? 0 : num;
+    }
+  }
+  const cleaned = val.replace(/[^\d.-]/g, "");
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+}
+
 export function Cocometer({ locations, title }: CocometerProps) {
   const [totalEarnings, setTotalEarnings] = useState<{
     BRL: number;
@@ -23,22 +53,16 @@ export function Cocometer({ locations, title }: CocometerProps) {
   useEffect(() => {
     const totals = locations.reduce(
       (acc, loc) => {
-        if (typeof loc.totalearned === "string") {
-          const valStr = loc.totalearned;
-          const num = parseFloat(valStr.replace(/[^\d.-]/g, ""));
-          if (!isNaN(num)) {
-            if (valStr.includes("R$")) {
-              acc.BRL += num;
-            } else if (valStr.includes("$")) {
-              acc.USD += num;
-            } else if (valStr.includes("€")) {
-              acc.EUR += num;
-            } else {
-              acc.BRL += num;
-            }
+        const valStr = typeof loc.totalearned === "string" ? loc.totalearned : String(loc.totalearned || "");
+        const num = parseCurrencyString(loc.totalearned);
+        if (num > 0) {
+          if (valStr.includes("€")) {
+            acc.EUR += num;
+          } else if (valStr.includes("$") && !valStr.includes("R$")) {
+            acc.USD += num;
+          } else {
+            acc.BRL += num;
           }
-        } else if (typeof loc.totalearned === "number") {
-          acc.BRL += loc.totalearned;
         }
         return acc;
       },

@@ -6,6 +6,7 @@ import { RatePlace } from "../RatePlace";
 import { translate } from "../../languages/translator";
 import { Location } from "../../entities/Location";
 import { Place } from "../../entities/Place";
+import { AudioService } from "../../utils/audio";
 
 interface MenuProps {
   locations: Location[];
@@ -15,13 +16,15 @@ interface MenuProps {
 }
 
 export function Menu({
+  locations,
   onLocationsUpdated,
   onPlaceAdded,
 }: MenuProps) {
   const [selectedComponent, setSelectedComponent] =
-    useState<ComponentType | null>(null);
+    useState<ComponentType | null>(ComponentType.Calculator);
 
   const toggleComponent = (comp: ComponentType) => {
+    AudioService.playPop();
     setSelectedComponent((prev) => (prev === comp ? null : comp));
   };
 
@@ -100,6 +103,7 @@ export function Menu({
         {/* Write on Door Anchor Button */}
         <a
           href="#writeMessage"
+          onClick={() => AudioService.playPop()}
           className="flex items-center justify-between p-4 sm:p-5 rounded-2xl border-4 border-primary bg-primary hover:bg-primary-dark text-background transition-all duration-200 text-left shadow-lg hover:scale-[1.01]"
         >
           <div>
@@ -123,6 +127,7 @@ export function Menu({
         <Calculator
           selectedComponent={selectedComponent}
           setSelectedComponent={setSelectedComponent}
+          locations={locations}
           onLocationsUpdated={onLocationsUpdated}
         />
         <RatePlace

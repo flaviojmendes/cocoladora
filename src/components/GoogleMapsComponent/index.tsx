@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -99,6 +99,31 @@ export function GoogleMapComponent({ locations, places }: GoogleMapComponentProp
   const isLocation = (item: Place | Location | null): item is Location => {
     return item !== null && (item as Location).totalearned !== undefined;
   };
+
+  // Group identical coordinates and slightly offset them deterministically so all markers are visible and clickable
+  const jitteredLocations = useMemo(() => {
+    const coordCounts: { [key: string]: number } = {};
+    return locations.map((loc) => {
+      const lat = Number(loc.latitude) || 0;
+      const lng = Number(loc.longitude) || 0;
+      const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+      const index = coordCounts[key] || 0;
+      coordCounts[key] = index + 1;
+
+      if (index === 0) {
+        return { ...loc, displayLat: lat, displayLng: lng };
+      }
+
+      // Small spiral jitter (~30-60m) so multiple pins at the exact same coordinates don't completely overlap
+      const angle = (index * 137.5 * Math.PI) / 180;
+      const radius = 0.0006 * Math.sqrt(index);
+      return {
+        ...loc,
+        displayLat: lat + radius * Math.cos(angle),
+        displayLng: lng + radius * Math.sin(angle),
+      };
+    });
+  }, [locations]);
 
   const renderRatingBar = (score: number = 0) => {
     return (
@@ -220,12 +245,12 @@ export function GoogleMapComponent({ locations, places }: GoogleMapComponentProp
 
             {/* Calculated Sessions Markers */}
             {displayMarkers.calculated &&
-              locations.map((loc, idx) => (
+              jitteredLocations.map((loc, idx) => (
                 <Marker
-                  key={`loc-${idx}-${loc.latitude}-${loc.longitude}`}
+                  key={`loc-${loc.id || idx}-${loc.latitude}-${loc.longitude}-${idx}`}
                   position={{
-                    lat: loc.latitude,
-                    lng: loc.longitude,
+                    lat: loc.displayLat,
+                    lng: loc.displayLng,
                   }}
                   icon={poopIcon}
                   eventHandlers={{

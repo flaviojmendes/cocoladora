@@ -4,6 +4,8 @@ import { Place } from "../../entities/Place";
 import { ComponentType } from "../../entities/ComponentType";
 import { translate } from "../../languages/translator";
 import { StorageService } from "../../services/storage";
+import { AudioService } from "../../utils/audio";
+import { AchievementService } from "../../utils/achievements";
 
 type RatePlaceProps = {
   selectedComponent: ComponentType | null;
@@ -53,6 +55,7 @@ export function RatePlace({
   };
 
   const handleGetCurrentLocation = () => {
+    AudioService.playPop();
     if (!navigator.geolocation) {
       setErrorMessage("Geolocalização não suportada no seu navegador.");
       return;
@@ -75,6 +78,7 @@ export function RatePlace({
   };
 
   const handlePresetSelect = (preset: string) => {
+    AudioService.playPop();
     setPlaceName(preset);
   };
 
@@ -84,6 +88,8 @@ export function RatePlace({
       setErrorMessage("Por favor, preencha o nome do local.");
       return;
     }
+
+    AudioService.playCoin();
 
     const newPlace: Place = {
       id: `place-${Date.now()}`,
@@ -98,6 +104,8 @@ export function RatePlace({
 
     const updatedPlaces = await StorageService.addPlace(newPlace);
     onPlaceAdded?.(updatedPlaces);
+
+    AchievementService.unlock("restroom_critic");
 
     setIsSuccess(true);
     setErrorMessage("");
@@ -140,7 +148,10 @@ export function RatePlace({
               type="button"
               key={star}
               aria-label={`${label} ${star} de 5`}
-              onClick={() => setScore(star)}
+              onClick={() => {
+                AudioService.playPop();
+                setScore(star);
+              }}
               onMouseEnter={() => setHover(star)}
               onMouseLeave={() => setHover(0)}
               className="p-1 focus:outline-none transition-transform hover:scale-110"
@@ -168,7 +179,10 @@ export function RatePlace({
       <div className="relative bg-background text-secondary rounded-2xl border-4 border-primary p-6 sm:p-8 shadow-xl">
         {/* Close Button */}
         <button
-          onClick={() => setSelectedComponent(null)}
+          onClick={() => {
+            AudioService.playPop();
+            setSelectedComponent(null);
+          }}
           aria-label={translate("close")}
           className="absolute top-4 right-4 text-primary hover:text-primary-dark transition-colors p-2 rounded-lg hover:bg-background-dark focus:outline-none"
         >
