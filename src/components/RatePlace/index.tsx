@@ -1,365 +1,326 @@
-import React, { useEffect, useRef, useState } from "react";
-import { FaPoop, FaWindowClose } from "react-icons/fa";
+import React, { useState } from "react";
+import { FaMapMarkerAlt, FaPoop, FaTimes, FaToiletPaper, FaCheckCircle } from "react-icons/fa";
 import { Place } from "../../entities/Place";
-import ReactGA from "react-ga4";
 import { ComponentType } from "../../entities/ComponentType";
 import { translate } from "../../languages/translator";
-
-function loadScript(src: string, position: HTMLElement | null, id: string) {
-  if (!position) return;
-
-  const script = document.createElement("script");
-  script.setAttribute("async", "");
-  script.setAttribute("defer", "");
-  script.setAttribute("id", id);
-  script.src = src;
-  position.appendChild(script);
-}
+import { StorageService } from "../../services/storage";
 
 type RatePlaceProps = {
   selectedComponent: ComponentType | null;
   setSelectedComponent: (component: ComponentType | null) => void;
+  onPlaceAdded?: (places: { [key: string]: Place }) => void;
 };
 
-export function RatePlace(props: RatePlaceProps) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [displayRatePlace, setDisplayRatePlace] = useState(false);
-  const [newPlace, setNewPlace] = useState<Place>();
-  const [cleanRating, setCleanRating] = useState<number>(0);
+export function RatePlace({
+  selectedComponent,
+  setSelectedComponent,
+  onPlaceAdded,
+}: RatePlaceProps) {
+  const [placeName, setPlaceName] = useState("");
+  const [placeCity, setPlaceCity] = useState("");
+  const [cleanRating, setCleanRating] = useState<number>(4);
   const [hoverCleanRating, setHoverCleanRating] = useState<number>(0);
-  const [facilitiesRating, setFacilitiesRating] = useState<number>(0);
+  const [facilitiesRating, setFacilitiesRating] = useState<number>(4);
   const [hoverFacilitiesRating, setHoverFacilitiesRating] = useState<number>(0);
-  const [privacyRating, setPrivacyRating] = useState<number>(0);
+  const [privacyRating, setPrivacyRating] = useState<number>(4);
   const [hoverPrivacyRating, setHoverPrivacyRating] = useState<number>(0);
-  const [errorMessage, setErrorMessage] = useState<string>();
-  const [notes, setNotes] = useState<string>("");
-  const [isRating, setIsRating] = useState(false);
+  const [notes, setNotes] = useState("");
+  const [latitude, setLatitude] = useState<number>(-23.5505);
+  const [longitude, setLongitude] = useState<number>(-46.6333);
+  const [isLocating, setIsLocating] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  useEffect(() => {
-    const scriptId = "google-maps-script";
-    const googleMapsScript = document.getElementById(scriptId);
+  if (selectedComponent !== ComponentType.RatePlace) {
+    return null;
+  }
 
-    if (!googleMapsScript) {
-      loadScript(
-        `https://maps.googleapis.com/maps/api/js?key=${
-          import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-        }&libraries=places`,
-        document.head,
-        scriptId
-      );
+  const getRatingLabel = (score: number) => {
+    switch (score) {
+      case 1:
+        return translate("ratingPoor");
+      case 2:
+        return translate("ratingFair");
+      case 3:
+        return translate("ratingGood");
+      case 4:
+        return translate("ratingGreat");
+      case 5:
+        return translate("ratingExcellent");
+      default:
+        return "";
+    }
+  };
+
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setErrorMessage("Geolocalização não suportada no seu navegador.");
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLatitude(pos.coords.latitude);
+        setLongitude(pos.coords.longitude);
+        if (!placeCity) {
+          setPlaceCity("Local Atual");
+        }
+        setIsLocating(false);
+      },
+      () => {
+        setIsLocating(false);
+        setErrorMessage("Não foi possível obter sua localização atual.");
+      }
+    );
+  };
+
+  const handlePresetSelect = (preset: string) => {
+    setPlaceName(preset);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!placeName.trim()) {
+      setErrorMessage("Por favor, preencha o nome do local.");
+      return;
     }
 
-    const handleScriptLoad = () => {
-      if (!mapRef.current || !inputRef.current) return;
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-
-          const mapStyles = [
-            {
-              elementType: "geometry",
-              stylers: [{ color: "#fcf9ea" }],
-            },
-            {
-              elementType: "labels.text.stroke",
-              stylers: [{ color: "#fcf9ea" }],
-            },
-            {
-              elementType: "labels.text.fill",
-              stylers: [{ color: "#292420" }],
-            },
-            {
-              featureType: "administrative.locality",
-              elementType: "labels.text.fill",
-              stylers: [{ color: "#815028" }],
-            },
-            {
-              featureType: "poi",
-              elementType: "labels.text.fill",
-              stylers: [{ color: "#815028" }],
-            },
-            {
-              featureType: "poi.park",
-              elementType: "geometry",
-              stylers: [{ color: "#a95d2f" }],
-            },
-            {
-              featureType: "poi.park",
-              elementType: "labels.text.fill",
-              stylers: [{ color: "#815028" }],
-            },
-            {
-              featureType: "road",
-              elementType: "geometry",
-              stylers: [{ color: "#a95d2f" }],
-            },
-            {
-              featureType: "road",
-              elementType: "geometry.stroke",
-              stylers: [{ color: "#815028" }],
-            },
-            {
-              featureType: "road",
-              elementType: "labels.text.fill",
-              stylers: [{ color: "#815028" }],
-            },
-            {
-              featureType: "water",
-              elementType: "geometry",
-              stylers: [{ color: "#292420" }],
-            },
-            {
-              featureType: "water",
-              elementType: "labels.text.fill",
-              stylers: [{ color: "#815028" }],
-            },
-          ];
-
-          const map = new google.maps.Map(mapRef.current!, {
-            center: { lat: latitude, lng: longitude },
-            zoom: 8,
-            styles: mapStyles,
-            disableDefaultUI: true, // Disable all controls
-            draggable: false, // Disable map dragging
-            scrollwheel: false, // Disable zooming with scroll wheel
-          });
-
-          const autocomplete = new google.maps.places.Autocomplete(
-            inputRef.current!
-          );
-          autocomplete.bindTo("bounds", map);
-
-          const marker = new google.maps.Marker({
-            map,
-            anchorPoint: new google.maps.Point(0, -29),
-          });
-
-          autocomplete.addListener("place_changed", () => {
-            marker.setVisible(false);
-            const place = autocomplete.getPlace();
-            if (!place.geometry || !place.geometry.location) {
-              return;
-            }
-
-            const location = place.geometry.location;
-            setNewPlace({
-              latitude: location.lat(),
-              longitude: location.lng(),
-              name: place.name,
-              cleanRating: cleanRating,
-              facilitiesRating: facilitiesRating,
-              privacyRating: privacyRating,
-              notes: notes,
-            });
-
-            if (place.geometry.viewport) {
-              map.fitBounds(place.geometry.viewport);
-            } else {
-              map.setCenter(location);
-              map.setZoom(17);
-            }
-
-            marker.setPosition(location);
-            marker.setVisible(true);
-          });
-        },
-        () => {}
-      );
+    const newPlace: Place = {
+      id: `place-${Date.now()}`,
+      name: placeName.trim(),
+      latitude,
+      longitude,
+      cleanRating,
+      facilitiesRating,
+      privacyRating,
+      notes: notes.trim() ? [notes.trim()] : ["Banheiro avaliado pela comunidade."],
     };
 
-    if (googleMapsScript) {
-      googleMapsScript.addEventListener("load", handleScriptLoad);
-    } else {
-      window.addEventListener("load", handleScriptLoad);
-    }
+    const updatedPlaces = await StorageService.addPlace(newPlace);
+    onPlaceAdded?.(updatedPlaces);
 
-    return () => {
-      if (googleMapsScript) {
-        googleMapsScript.removeEventListener("load", handleScriptLoad);
-      } else {
-        window.removeEventListener("load", handleScriptLoad);
-      }
-    };
-  }, []);
+    setIsSuccess(true);
+    setErrorMessage("");
 
-  const handleCleanRating = (rate: number) => {
-    setCleanRating(rate);
-    if (newPlace) {
-      setNewPlace({ ...newPlace, cleanRating: rate });
-    }
-  };
-
-  const handleFacilitiesRating = (rate: number) => {
-    setFacilitiesRating(rate);
-    if (newPlace) {
-      setNewPlace({ ...newPlace, facilitiesRating: rate });
-    }
-  };
-
-  const handlePrivacyRating = (rate: number) => {
-    setPrivacyRating(rate);
-    if (newPlace) {
-      setNewPlace({ ...newPlace, privacyRating: rate });
-    }
-  };
-
-  const handleRate = async () => {
-    setIsRating(true);
-
-    try {
-      const response = await fetch(
-        "https://saveplace-pzeq65kcvq-uc.a.run.app",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(newPlace),
-        }
-      );
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          setErrorMessage("Calma aí! Você está avaliando rápido demais.");
-        }
-        if (response.status === 400) {
-          setErrorMessage("Por favor, preencha todos os campos.");
-        }
-        throw new Error("Network response was not ok");
-      }
-
-      setErrorMessage("");
-
-      const data = await response.json();
+    setTimeout(() => {
       // reset form
-      setCleanRating(0);
-      setFacilitiesRating(0);
-      setPrivacyRating(0);
+      setPlaceName("");
+      setPlaceCity("");
       setNotes("");
-      setNewPlace(undefined);
-      inputRef.current!.value = "";
-      setHoverCleanRating(0);
-      setHoverFacilitiesRating(0);
-      setHoverPrivacyRating(0);
-
-      ReactGA.event({
-        category: "Rate",
-        action: "Rate Place",
-        label: window.location.pathname + window.location.search,
-      });
-      setDisplayRatePlace(false);
-    } catch (error) {
-    } finally {
-      setIsRating(false);
-    }
+      setCleanRating(4);
+      setFacilitiesRating(4);
+      setPrivacyRating(4);
+      setIsSuccess(false);
+      setSelectedComponent(null);
+    }, 1500);
   };
 
-  const handleNotes = (value: string) => {
-    setNotes(value);
-    if (newPlace) {
-      setNewPlace({ ...newPlace, notes: value });
-    }
+  const renderRatingGroup = (
+    label: string,
+    current: number,
+    hover: number,
+    setScore: (n: number) => void,
+    setHover: (n: number) => void
+  ) => {
+    const activeScore = hover || current;
+    return (
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white rounded-xl border-2 border-primary/20">
+        <div>
+          <span className="font-secondary text-primary-dark font-bold text-lg">
+            {label}
+          </span>
+          <span className="block text-xs font-secondary text-secondary-light">
+            {getRatingLabel(activeScore)}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              type="button"
+              key={star}
+              aria-label={`${label} ${star} de 5`}
+              onClick={() => setScore(star)}
+              onMouseEnter={() => setHover(star)}
+              onMouseLeave={() => setHover(0)}
+              className="p-1 focus:outline-none transition-transform hover:scale-110"
+            >
+              <FaToiletPaper
+                size={24}
+                className={
+                  activeScore >= star
+                    ? "text-amber-500 drop-shadow-sm"
+                    : "text-gray-300"
+                }
+              />
+            </button>
+          ))}
+          <span className="font-primary text-xl text-primary font-bold ml-2 min-w-[20px] text-right">
+            {activeScore}
+          </span>
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div
-      className={`gap-2 ${
-        props.selectedComponent === ComponentType.RatePlace
-          ? "flex flex-col w-full mt-4"
-          : "hidden"
-      }`}
-    >
-      <div
-        className={`flex-col items-center mx-auto w-full relative h-fit gap-4 bg-background py-5 px-2 lg:px-14 rounded-2xl border-4 border-primary shadow-md shadow-secondary`}
-      >
-        <span className="absolute top-2 right-2 cursor-pointer text-primary text-2xl">
-          <FaWindowClose onClick={() => setDisplayRatePlace(false)} />
-        </span>
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder={translate("searchPlace")}
-          className="w-full mt-6 px-6 py-3 text-lg font-secondary text-center text-primary-dark font-semibold bg-white border-4 border-primary-dark rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 focus:ring-primary placeholder-primary placeholder-opacity-80"
-        />
-        <div ref={mapRef} style={{ height: "400px", width: "100%" }}></div>
-        <div className="flex items-center gap-2 w-full text-xl font-secondary text-primary-dark">
-          <span>{translate("cleanessRate")}</span>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map((rate) => (
-              <FaPoop
-                key={rate}
-                className={`cursor-pointer ${
-                  hoverCleanRating >= rate || cleanRating >= rate
-                    ? "text-yellow-500"
-                    : "text-gray-400"
-                }`}
-                onClick={() => handleCleanRating(rate)}
-                onMouseEnter={() => setHoverCleanRating(rate)}
-                onMouseLeave={() => setHoverCleanRating(0)}
-              />
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center gap-2 w-full text-xl font-secondary text-primary-dark">
-          <span>{translate("facilitiesRate")}</span>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map((rate) => (
-              <FaPoop
-                key={rate}
-                className={`cursor-pointer ${
-                  hoverFacilitiesRating >= rate || facilitiesRating >= rate
-                    ? "text-yellow-500"
-                    : "text-gray-400"
-                }`}
-                onClick={() => handleFacilitiesRating(rate)}
-                onMouseEnter={() => setHoverFacilitiesRating(rate)}
-                onMouseLeave={() => setHoverFacilitiesRating(0)}
-              />
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center gap-2 w-full text-xl font-secondary text-primary-dark">
-          <span>{translate("privacyRate")}</span>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map((rate) => (
-              <FaPoop
-                key={rate}
-                className={`cursor-pointer ${
-                  hoverPrivacyRating >= rate || privacyRating >= rate
-                    ? "text-yellow-500"
-                    : "text-gray-400"
-                }`}
-                onClick={() => handlePrivacyRating(rate)}
-                onMouseEnter={() => setHoverPrivacyRating(rate)}
-                onMouseLeave={() => setHoverPrivacyRating(0)}
-              />
-            ))}
-          </div>
-        </div>
-        <textarea
-          placeholder={translate("comments")}
-          rows={2}
-          maxLength={200}
-          value={notes}
-          onChange={(e) => handleNotes(e.target.value)}
-          className="w-full px-6 py-3 font-secondary text-lg text-primary-dark font-semibold bg-white border-4 border-primary-dark rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 focus:ring-primary placeholder-primary placeholder-opacity-80"
-        />
-        {/* Rate Button */}
+    <div className="w-full max-w-4xl mx-auto px-4 mt-6">
+      <div className="relative bg-background text-secondary rounded-2xl border-4 border-primary p-6 sm:p-8 shadow-xl">
+        {/* Close Button */}
         <button
-          onClick={handleRate}
-          disabled={isRating}
-          className={`mt-4 px-4 py-2 text-2xl bg-primary font-secondary text-background rounded-lg shadow-lg hover:bg-primary-dark focus:outline-none ${
-            isRating ? "opacity-50 cursor-not-allowed" : ""
-          }`}
+          onClick={() => setSelectedComponent(null)}
+          aria-label={translate("close")}
+          className="absolute top-4 right-4 text-primary hover:text-primary-dark transition-colors p-2 rounded-lg hover:bg-background-dark focus:outline-none"
         >
-          {isRating ? translate("rating") : translate("rate")}
+          <FaTimes size={24} />
         </button>
-        {errorMessage && (
-          <span className="text-red-500 text-lg font-secondary">
-            {errorMessage}
-          </span>
+
+        {/* Header */}
+        <div className="flex items-center gap-3 pb-4 border-b-2 border-primary/20 mb-6">
+          <span className="text-3xl">🧻</span>
+          <div>
+            <h2 className="font-primary text-3xl sm:text-4xl text-primary font-bold">
+              {translate("ratePoop")}
+            </h2>
+            <p className="font-secondary text-base sm:text-lg text-secondary-light">
+              Ajude a comunidade a catalogar os melhores e piores tronos do mundo
+            </p>
+          </div>
+        </div>
+
+        {isSuccess ? (
+          <div className="py-12 flex flex-col items-center justify-center text-center animate-fade-in">
+            <FaCheckCircle className="text-green-600 text-6xl mb-3" />
+            <h3 className="font-primary text-3xl text-primary font-bold mb-2">
+              {translate("ratingSuccess")}
+            </h3>
+            <p className="font-secondary text-xl text-secondary">
+              Seu banheiro foi gravado e já está visível no mapa de exploração!
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            {/* Quick Suggestions */}
+            <div>
+              <span className="block font-secondary text-sm text-secondary-light mb-1">
+                Sugestões rápidas de local:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  "Shopping",
+                  "Aeroporto",
+                  "Café / Coworking",
+                  "Restaurante",
+                  "Posto de Estrada",
+                  "Metrô / Trem",
+                ].map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => handlePresetSelect(item)}
+                    className="text-xs sm:text-sm font-secondary bg-background-dark hover:bg-primary hover:text-background border border-primary/30 px-3 py-1 rounded-full transition-colors"
+                  >
+                    + {item}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Place Name and City */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block font-secondary text-primary-dark font-semibold text-lg mb-1">
+                  Nome do Local *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={placeName}
+                  onChange={(e) => setPlaceName(e.target.value)}
+                  placeholder={translate("placeNamePlaceholder")}
+                  className="w-full py-2.5 px-3 rounded-lg border-2 border-primary-dark font-secondary text-lg text-secondary bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block font-secondary text-primary-dark font-semibold text-lg mb-1">
+                  Cidade ou Bairro
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={placeCity}
+                    onChange={(e) => setPlaceCity(e.target.value)}
+                    placeholder={translate("cityPlaceholder")}
+                    className="w-full py-2.5 px-3 rounded-lg border-2 border-primary-dark font-secondary text-lg text-secondary bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleGetCurrentLocation}
+                    title="Usar minha localização atual"
+                    className="py-2.5 px-3 rounded-lg bg-background-dark hover:bg-primary hover:text-background border-2 border-primary/40 font-secondary text-primary-dark transition-colors flex items-center justify-center shrink-0"
+                  >
+                    <FaMapMarkerAlt />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Ratings 1-5 */}
+            <div className="flex flex-col gap-3">
+              {renderRatingGroup(
+                translate("cleaness"),
+                cleanRating,
+                hoverCleanRating,
+                setCleanRating,
+                setHoverCleanRating
+              )}
+              {renderRatingGroup(
+                translate("facilities"),
+                facilitiesRating,
+                hoverFacilitiesRating,
+                setFacilitiesRating,
+                setHoverFacilitiesRating
+              )}
+              {renderRatingGroup(
+                translate("privacy"),
+                privacyRating,
+                hoverPrivacyRating,
+                setPrivacyRating,
+                setHoverPrivacyRating
+              )}
+            </div>
+
+            {/* Comments */}
+            <div>
+              <label className="block font-secondary text-primary-dark font-semibold text-lg mb-1">
+                {translate("commentsLabel")}
+              </label>
+              <textarea
+                rows={3}
+                maxLength={300}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={translate("comments")}
+                className="w-full p-3 rounded-lg border-2 border-primary-dark font-secondary text-base text-secondary bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {errorMessage && (
+              <div className="bg-red-50 text-red-700 px-4 py-2 rounded-lg border border-red-200 font-secondary text-base">
+                {errorMessage}
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              className="w-full py-3.5 px-6 rounded-xl font-secondary text-2xl font-bold bg-primary hover:bg-primary-dark text-background shadow-lg transition-transform active:translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-primary/40 flex items-center justify-center gap-2"
+            >
+              <span>{translate("rate")}</span>
+              <FaPoop />
+            </button>
+          </form>
         )}
       </div>
     </div>

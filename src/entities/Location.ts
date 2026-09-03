@@ -1,4 +1,5 @@
 export interface Location {
+  id?: number | string;
   latitude: number;
   longitude: number;
   totalearned: number | string;
