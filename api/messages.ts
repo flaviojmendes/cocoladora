@@ -1,9 +1,26 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { ensureTables, sql } from "./_db";
+import { sql } from "@vercel/postgres";
+
+let initialized = false;
+
+async function ensureTable() {
+  if (initialized) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS door_messages (
+      id VARCHAR(64) PRIMARY KEY,
+      message TEXT NOT NULL,
+      font_color VARCHAR(32) DEFAULT '#1e1b18',
+      font VARCHAR(64) DEFAULT 'Sedgwick Ave',
+      rotation REAL DEFAULT 0,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+  initialized = true;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    await ensureTables();
+    await ensureTable();
 
     if (req.method === "GET") {
       const { rows } = await sql`

@@ -1,9 +1,29 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { ensureTables, sql } from "./_db";
+import { sql } from "@vercel/postgres";
+
+let initialized = false;
+
+async function ensureTable() {
+  if (initialized) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS places (
+      id VARCHAR(64) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      latitude DOUBLE PRECISION NOT NULL,
+      longitude DOUBLE PRECISION NOT NULL,
+      clean_rating INTEGER NOT NULL DEFAULT 0,
+      facilities_rating INTEGER NOT NULL DEFAULT 0,
+      privacy_rating INTEGER NOT NULL DEFAULT 0,
+      notes JSONB DEFAULT '[]'::jsonb,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+  initialized = true;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    await ensureTables();
+    await ensureTable();
 
     if (req.method === "GET") {
       const { rows } = await sql`
