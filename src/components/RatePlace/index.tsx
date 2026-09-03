@@ -1,11 +1,13 @@
 import React, { useState } from "react";
-import { FaMapMarkerAlt, FaPoop, FaTimes, FaToiletPaper, FaCheckCircle } from "react-icons/fa";
+import { FaMapMarkerAlt, FaPoop, FaTimes, FaToiletPaper, FaCheckCircle, FaCheck } from "react-icons/fa";
 import { Place } from "../../entities/Place";
 import { ComponentType } from "../../entities/ComponentType";
 import { translate } from "../../languages/translator";
 import { StorageService } from "../../services/storage";
 import { AudioService } from "../../utils/audio";
 import { AchievementService } from "../../utils/achievements";
+import { PlaceAutocomplete } from "../PlaceAutocomplete";
+import { AutocompletePlace } from "../../services/geocoding";
 
 type RatePlaceProps = {
   selectedComponent: ComponentType | null;
@@ -29,6 +31,7 @@ export function RatePlace({
   const [notes, setNotes] = useState("");
   const [latitude, setLatitude] = useState<number>(-23.5505);
   const [longitude, setLongitude] = useState<number>(-46.6333);
+  const [selectedPlaceInfo, setSelectedPlaceInfo] = useState<string>("");
   const [isLocating, setIsLocating] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -68,6 +71,7 @@ export function RatePlace({
         if (!placeCity) {
           setPlaceCity("Local Atual");
         }
+        setSelectedPlaceInfo(`GPS: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`);
         setIsLocating(false);
       },
       () => {
@@ -75,6 +79,20 @@ export function RatePlace({
         setErrorMessage("Não foi possível obter sua localização atual.");
       }
     );
+  };
+
+  const handleSelectAutocompletePlace = (place: AutocompletePlace) => {
+    setPlaceName(place.name);
+    const bestCity = place.city
+      ? place.state && !place.city.includes(place.state)
+        ? `${place.city}, ${place.state}`
+        : place.city
+      : place.state || place.country || "";
+    setPlaceCity(bestCity);
+    setLatitude(place.latitude);
+    setLongitude(place.longitude);
+    setSelectedPlaceInfo(`${place.fullAddress}`);
+    setErrorMessage("");
   };
 
   const handlePresetSelect = (preset: string) => {
@@ -114,6 +132,7 @@ export function RatePlace({
       // reset form
       setPlaceName("");
       setPlaceCity("");
+      setSelectedPlaceInfo("");
       setNotes("");
       setCleanRating(4);
       setFacilitiesRating(4);
@@ -240,19 +259,23 @@ export function RatePlace({
               </div>
             </div>
 
-            {/* Place Name and City */}
+            {/* Place Name Autocomplete and City */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block font-secondary text-primary-dark font-semibold text-lg mb-1">
                   Nome do Local *
                 </label>
-                <input
-                  type="text"
-                  required
+                <PlaceAutocomplete
                   value={placeName}
-                  onChange={(e) => setPlaceName(e.target.value)}
+                  onChange={(val) => {
+                    setPlaceName(val);
+                    if (!val) setSelectedPlaceInfo("");
+                  }}
+                  onSelectPlace={handleSelectAutocompletePlace}
+                  userLat={latitude}
+                  userLng={longitude}
                   placeholder={translate("placeNamePlaceholder")}
-                  className="w-full py-2.5 px-3 rounded-lg border-2 border-primary-dark font-secondary text-lg text-secondary bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  required
                 />
               </div>
 
@@ -271,7 +294,7 @@ export function RatePlace({
                   <button
                     type="button"
                     onClick={handleGetCurrentLocation}
-                    title="Usar minha localização atual"
+                    title="Usar minha localização atual (GPS)"
                     className="py-2.5 px-3 rounded-lg bg-background-dark hover:bg-primary hover:text-background border-2 border-primary/40 font-secondary text-primary-dark transition-colors flex items-center justify-center shrink-0"
                   >
                     <FaMapMarkerAlt />
@@ -279,6 +302,15 @@ export function RatePlace({
                 </div>
               </div>
             </div>
+
+            {/* Location selection info badge */}
+            {selectedPlaceInfo && (
+              <div className="bg-amber-50/90 border border-primary/30 rounded-lg py-2 px-3 text-xs sm:text-sm font-secondary text-primary-dark flex items-center gap-2">
+                <FaCheck className="text-emerald-600 shrink-0" />
+                <span className="font-semibold shrink-0">{translate("selectedLocationBadge")}:</span>
+                <span className="truncate">{selectedPlaceInfo}</span>
+              </div>
+            )}
 
             {/* Ratings 1-5 */}
             <div className="flex flex-col gap-3">

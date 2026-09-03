@@ -3,6 +3,7 @@ import {
   MapContainer,
   TileLayer,
   Marker,
+  Popup,
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
@@ -16,8 +17,12 @@ import {
   FaRegSquare,
   FaToiletPaper,
   FaStar,
+  FaMapMarkerAlt,
 } from "react-icons/fa";
 import { translate } from "../../languages/translator";
+import { PlaceAutocomplete } from "../PlaceAutocomplete";
+import { AutocompletePlace } from "../../services/geocoding";
+import { AudioService } from "../../utils/audio";
 
 const containerStyle = {
   width: "100%",
@@ -30,6 +35,18 @@ function SetViewOnClick({ coords }: { coords: { lat: number; lng: number } }) {
   useEffect(() => {
     map.setView(coords, map.getZoom());
   }, [coords, map]);
+  return null;
+}
+
+function MapPanController({ targetCoords, zoom }: { targetCoords: { lat: number; lng: number } | null; zoom?: number }) {
+  const map = useMap();
+  useEffect(() => {
+    if (targetCoords) {
+      map.flyTo([targetCoords.lat, targetCoords.lng], zoom || 14, {
+        duration: 1.2,
+      });
+    }
+  }, [targetCoords, zoom, map]);
   return null;
 }
 
@@ -52,6 +69,18 @@ export function GoogleMapComponent({ locations, places }: GoogleMapComponentProp
     calculated: true,
     rated: true,
   });
+
+  // Autocomplete search states
+  const [searchedPlace, setSearchedPlace] = useState<AutocompletePlace | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mapTarget, setMapTarget] = useState<{ lat: number; lng: number } | null>(null);
+
+  const handleSelectMapPlace = (place: AutocompletePlace) => {
+    AudioService.playPop();
+    setSearchedPlace(place);
+    setSearchQuery(place.name);
+    setMapTarget({ lat: place.latitude, lng: place.longitude });
+  };
 
   // Custom marker icons
   const ratedIcon = new L.Icon({
@@ -209,6 +238,42 @@ export function GoogleMapComponent({ locations, places }: GoogleMapComponentProp
           </div>
         </div>
 
+        {/* Map Location Autocomplete Search Bar */}
+        <div className="mb-4">
+          <PlaceAutocomplete
+            value={searchQuery}
+            onChange={(val) => {
+              setSearchQuery(val);
+              if (!val) setSearchedPlace(null);
+            }}
+            onSelectPlace={handleSelectMapPlace}
+            userLat={center.lat}
+            userLng={center.lng}
+            placeholder={translate("searchMapPlaceholder")}
+          />
+
+          {searchedPlace && (
+            <div className="mt-2 py-1.5 px-3 bg-amber-50 rounded-lg border border-primary/30 flex items-center justify-between text-xs sm:text-sm font-secondary text-primary-dark">
+              <span className="flex items-center gap-1.5 truncate">
+                <FaMapMarkerAlt className="text-primary shrink-0" />
+                <strong className="truncate">{searchedPlace.name}</strong>
+                <span className="hidden sm:inline text-secondary-light">— {searchedPlace.fullAddress}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  AudioService.playPop();
+                  setSearchedPlace(null);
+                  setSearchQuery("");
+                }}
+                className="text-primary hover:text-primary-dark ml-2 underline text-xs shrink-0 cursor-pointer"
+              >
+                Limpar
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* The Leaflet Map Container */}
         <div className="rounded-xl overflow-hidden border-2 border-primary/30 shadow-inner relative">
           <MapContainer
@@ -223,6 +288,28 @@ export function GoogleMapComponent({ locations, places }: GoogleMapComponentProp
             />
 
             {userLocation && <SetViewOnClick coords={userLocation} />}
+            <MapPanController targetCoords={mapTarget} zoom={14} />
+
+            {/* Searched Location Pin */}
+            {searchedPlace && (
+              <Marker
+                position={{
+                  lat: searchedPlace.latitude,
+                  lng: searchedPlace.longitude,
+                }}
+              >
+                <Popup>
+                  <div className="font-secondary p-1">
+                    <strong className="text-primary-dark block text-sm font-bold">
+                      {searchedPlace.name}
+                    </strong>
+                    <span className="text-xs text-secondary-light block mt-0.5">
+                      {searchedPlace.fullAddress}
+                    </span>
+                  </div>
+                </Popup>
+              </Marker>
+            )}
 
             {/* Rated Places Markers */}
             {displayMarkers.rated &&
