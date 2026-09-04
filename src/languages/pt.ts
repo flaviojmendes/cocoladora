@@ -22,6 +22,8 @@ export const languageMap: { [key: string]: string } = {
   noLocationsFound: "Nenhum local encontrado para esta busca.",
   freeAutocomplete: "Busca gratuita via OpenStreetMap",
   selectedLocationBadge: "Local Selecionado",
+  mapZoomHint: "Aproxime o zoom para ver os pontos individuais. Os números agrupam pausas na região.",
+  mapClusterTitle: "registros neste ponto",
   cleanessRate: "Limpeza:",
   facilitiesRate: "Instalações:",
   privacyRate: "Privacidade:",

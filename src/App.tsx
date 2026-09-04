@@ -39,13 +39,10 @@ function App() {
 
     async function loadData() {
       try {
-        const [fetchedLocations, fetchedPlaces] = await Promise.all([
-          ApiService.getLocations(),
-          ApiService.getPlaces(),
-        ]);
+        const data = await ApiService.getBootstrap();
         if (isMounted) {
-          setLocations(fetchedLocations);
-          setPlaces(fetchedPlaces);
+          setLocations(data.locations);
+          setPlaces(data.places);
           setIsLoading(false);
         }
       } catch (err) {

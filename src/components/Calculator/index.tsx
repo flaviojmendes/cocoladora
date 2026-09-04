@@ -63,17 +63,10 @@ export function Calculator({
   const [showStealthBoard, setShowStealthBoard] = useState(false);
 
   useEffect(() => {
-    if (propLocations && propLocations.length > 0) {
+    if (propLocations) {
       setLocations(propLocations);
     }
   }, [propLocations]);
-
-  useEffect(() => {
-    StorageService.getLocations().then((data) => {
-      setLocations(data);
-      onLocationsUpdated?.(data);
-    });
-  }, []);
 
   // Live Timer Mode
   const [isLiveMode, setIsLiveMode] = useState(false);

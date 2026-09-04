@@ -22,6 +22,8 @@ export const languageMap: { [key: string]: string } = {
   noLocationsFound: "No locations found for this search.",
   freeAutocomplete: "Free search powered by OpenStreetMap",
   selectedLocationBadge: "Selected Location",
+  mapZoomHint: "Zoom in to see individual pins. Numbers group nearby sessions.",
+  mapClusterTitle: "records at this point",
   cleanessRate: "Cleanliness:",
   facilitiesRate: "Facilities:",
   privacyRate: "Privacy:",
