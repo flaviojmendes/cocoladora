@@ -6,7 +6,6 @@ import {
   FaKey,
   FaLock,
   FaMousePointer,
-  FaShoppingCart,
 } from "react-icons/fa";
 import { DoorPixelTile, PixelSelection } from "../../entities/DoorPixel";
 import { translate } from "../../languages/translator";
@@ -23,9 +22,13 @@ import {
   emptyPixelTiles,
   formatBRL,
   getPixelOwnerToken,
+  mergeTilePixels,
   normalizeSelection,
+  readPixelDraft,
   selectionMinimumBid,
   selectionTileIndices,
+  writePixelDraft,
+  clearPixelDraft,
 } from "../../utils/pixelDoor";
 import { AudioService } from "../../utils/audio";
 import { Modal } from "../Modal";
@@ -71,6 +74,8 @@ export function ToiletDoor() {
   const [savingArt, setSavingArt] = useState(false);
   const [keyModalOpen, setKeyModalOpen] = useState(false);
   const [keyInput, setKeyInput] = useState("");
+  const [draftTiles, setDraftTiles] = useState<Array<{ index: number; pixels: string }>>([]);
+  const canDrawRef = useRef(false);
 
   const loadTiles = useCallback(async () => {
     try {
@@ -91,8 +96,24 @@ export function ToiletDoor() {
   }, [loadTiles]);
 
   useEffect(() => {
+    const draft = readPixelDraft();
+    if (!draft?.tiles?.length) return;
+    setDraftTiles(draft.tiles);
+    const saved = selectionFromIndices(draft.tileIndices);
+    if (saved) setSelection(saved);
+    if (draft.bidInput) setBidInput(draft.bidInput);
+    if (new URLSearchParams(window.location.search).get("pixel_checkout") === "cancelled") {
+      setEditorOpen(true);
+    }
+  }, []);
+
+  useEffect(() => {
     const stopDragging = () => {
+      const wasDragging = draggingRef.current;
       draggingRef.current = false;
+      if (wasDragging && canDrawRef.current) {
+        setEditorOpen(true);
+      }
     };
     window.addEventListener("pointerup", stopDragging);
     window.addEventListener("pointercancel", stopDragging);
@@ -124,8 +145,17 @@ export function ToiletDoor() {
             if (refreshed && !cancelled) {
               const purchased = selectionFromIndices(order.tileIndices);
               setSelection(purchased);
+              const draft = readPixelDraft();
+              if (draft?.tiles?.length) {
+                try {
+                  await ApiService.saveDoorPixelTiles(ownerToken, draft.tiles);
+                  await loadTiles();
+                } catch {}
+              }
+              clearPixelDraft();
+              setDraftTiles([]);
               setNotice(translate("pixelPurchaseSuccess"));
-              setEditorOpen(Boolean(purchased));
+              setEditorOpen(false);
               window.history.replaceState({}, "", `${window.location.pathname}#writeMessage`);
             }
             return;
@@ -143,9 +173,12 @@ export function ToiletDoor() {
     return () => {
       cancelled = true;
     };
-  }, [loadTiles]);
+  }, [loadTiles, ownerToken]);
 
-  const allPixels = useMemo(() => composeDoorPixels(tiles), [tiles]);
+  const allPixels = useMemo(
+    () => composeDoorPixels(mergeTilePixels(tiles, draftTiles)),
+    [tiles, draftTiles]
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -170,6 +203,8 @@ export function ToiletDoor() {
   const selectionIsMine = selectedTiles.length > 0 && mineCount === selectedTiles.length;
   const selectionIsMixed = mineCount > 0 && mineCount < selectedTiles.length;
   const selectionReserved = selectedTiles.some((tile) => tile.reserved && !tile.mine);
+  canDrawRef.current =
+    selectedTiles.length > 0 && !selectionIsMixed && !selectionReserved;
   const minimumBid = selectionMinimumBid(tiles, selectedIndices);
   const normalizedSelection = selection ? normalizeSelection(selection) : null;
   const selectedPixelWidth = normalizedSelection
@@ -179,17 +214,25 @@ export function ToiletDoor() {
     ? (normalizedSelection.endRow - normalizedSelection.startRow + 1) * TILE_SIZE
     : 0;
 
+  const selectedKey = selectedIndices.join(",");
   useEffect(() => {
-    if (selectedIndices.length && !selectionIsMine) {
-      setBidInput(formatBidInput(minimumBid));
-    }
-  }, [minimumBid, selectedIndices.length, selectionIsMine]);
+    if (!selectedKey || selectionIsMine) return;
+    const draft = readPixelDraft();
+    const indices = selectedKey.split(",").map(Number);
+    const sameDraft =
+      Boolean(draft?.bidInput) &&
+      draft!.tileIndices.length === indices.length &&
+      draft!.tileIndices.every((index, i) => index === indices[i]);
+    setBidInput(sameDraft ? draft!.bidInput : formatBidInput(minimumBid));
+  }, [minimumBid, selectedKey, selectionIsMine]);
 
   const startSelection = (index: number) => {
     const col = index % TILE_COLUMNS;
     const row = Math.floor(index / TILE_COLUMNS);
     anchorRef.current = { col, row };
     draggingRef.current = true;
+    setDraftTiles([]);
+    setEditorOpen(false);
     setSelection({ startCol: col, startRow: row, endCol: col, endRow: row });
     AudioService.playPop();
   };
@@ -223,7 +266,7 @@ export function ToiletDoor() {
     });
   };
 
-  const checkout = async () => {
+  const checkout = async (artwork: Array<{ index: number; pixels: string }>) => {
     if (!selectedIndices.length || selectionIsMine || selectionIsMixed || selectionReserved) return;
     const bidTotalCents = parseBidInput(bidInput);
     if (!Number.isFinite(bidTotalCents) || bidTotalCents < minimumBid) {
@@ -231,12 +274,19 @@ export function ToiletDoor() {
       return;
     }
     setCheckoutLoading(true);
+    setSavingArt(true);
     setError("");
+    writePixelDraft({
+      tileIndices: selectedIndices,
+      tiles: artwork,
+      bidInput,
+    });
     try {
       const result = await ApiService.createPixelCheckout({
         ownerToken,
         tileIndices: selectedIndices,
         bidTotalCents,
+        tiles: artwork,
       });
       window.location.assign(result.checkoutUrl);
     } catch (err: any) {
@@ -244,14 +294,22 @@ export function ToiletDoor() {
       await loadTiles();
     } finally {
       setCheckoutLoading(false);
+      setSavingArt(false);
     }
   };
 
   const saveArtwork = async (updates: Array<{ index: number; pixels: string }>) => {
+    setDraftTiles(updates);
+    if (!selectionIsMine) {
+      await checkout(updates);
+      return;
+    }
     setSavingArt(true);
     setError("");
     try {
       await ApiService.saveDoorPixelTiles(ownerToken, updates);
+      clearPixelDraft();
+      setDraftTiles([]);
       await loadTiles();
       setEditorOpen(false);
       setNotice(translate("pixelArtSaved"));
@@ -343,7 +401,9 @@ export function ToiletDoor() {
             />
 
             <div
-              className="pixel-door__tiles"
+              className={`pixel-door__tiles ${
+                editorOpen ? "pixel-door__tiles--locked pixel-door__tiles--preview" : ""
+              }`}
               onPointerMove={extendSelectionAtPointer}
               style={{
                 gridTemplateColumns: `repeat(${TILE_COLUMNS}, 1fr)`,
@@ -399,69 +459,61 @@ export function ToiletDoor() {
 
             {selectionIsMixed ? (
               <p className="pixel-purchase-panel__warning">{translate("pixelMixedSelection")}</p>
-            ) : selectionIsMine ? (
-              <button
-                type="button"
-                onClick={() => setEditorOpen(true)}
-                className="pixel-purchase-panel__action"
-              >
-                <FaEdit /> {translate("pixelEditMine")}
-              </button>
             ) : (
               <>
-                <label className="pixel-bid-field">
-                  <span>
-                    {translate("pixelYourBid")} ({translate("pixelMinimumBid")}{" "}
-                    {formatBRL(minimumBid)})
-                  </span>
-                  <span className="pixel-bid-field__input">
-                    R$
-                    <input
-                      value={bidInput}
-                      onChange={(event) => setBidInput(event.target.value)}
-                      inputMode="decimal"
-                      aria-label={translate("pixelYourBid")}
-                    />
-                  </span>
-                </label>
-                <button
-                  type="button"
-                  onClick={checkout}
-                  disabled={checkoutLoading || selectionReserved}
-                  className="pixel-purchase-panel__action"
-                >
-                  <FaShoppingCart />
-                  {checkoutLoading
-                    ? translate("pixelOpeningStripe")
-                    : selectionReserved
+                {!selectionIsMine && (
+                  <label className="pixel-bid-field">
+                    <span>
+                      {translate("pixelYourBid")} ({translate("pixelMinimumBid")}{" "}
+                      {formatBRL(minimumBid)})
+                    </span>
+                    <span className="pixel-bid-field__input">
+                      R$
+                      <input
+                        value={bidInput}
+                        onChange={(event) => setBidInput(event.target.value)}
+                        inputMode="decimal"
+                        aria-label={translate("pixelYourBid")}
+                      />
+                    </span>
+                  </label>
+                )}
+                {editorOpen ? (
+                  <PixelDoorEditor
+                    key={`${normalizedSelection?.startCol}-${normalizedSelection?.startRow}-${normalizedSelection?.endCol}-${normalizedSelection?.endRow}`}
+                    tiles={mergeTilePixels(tiles, draftTiles)}
+                    selection={selection}
+                    saving={savingArt || checkoutLoading}
+                    requiresPayment={!selectionIsMine}
+                    onCancel={() => setEditorOpen(false)}
+                    onDraftChange={setDraftTiles}
+                    onSave={saveArtwork}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEditorOpen(true)}
+                    disabled={selectionReserved}
+                    className="pixel-purchase-panel__action"
+                  >
+                    <FaEdit />
+                    {selectionReserved
                       ? translate("pixelReserved")
-                      : translate("pixelBuyWithStripe")}
-                </button>
-                <p className="pixel-purchase-panel__fineprint">
-                  <FaLock /> {translate("pixelStripeHint")}
-                </p>
+                      : selectionIsMine
+                        ? translate("pixelEditMine")
+                        : translate("pixelDrawArea")}
+                  </button>
+                )}
+                {!selectionIsMine && (
+                  <p className="pixel-purchase-panel__fineprint">
+                    <FaLock /> {translate("pixelStripeHint")}
+                  </p>
+                )}
               </>
             )}
           </div>
         )}
       </div>
-
-      <Modal
-        isOpen={editorOpen && Boolean(selection)}
-        onClose={() => setEditorOpen(false)}
-        title={translate("pixelEditorTitle")}
-        maxWidth="max-w-2xl"
-      >
-        {selection && (
-          <PixelDoorEditor
-            tiles={tiles}
-            selection={selection}
-            saving={savingArt}
-            onCancel={() => setEditorOpen(false)}
-            onSave={saveArtwork}
-          />
-        )}
-      </Modal>
 
       <Modal
         isOpen={keyModalOpen}

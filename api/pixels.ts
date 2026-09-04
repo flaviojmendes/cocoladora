@@ -68,6 +68,7 @@ async function ensurePixelTables() {
       completed_at TIMESTAMP WITH TIME ZONE
     );
   `;
+  await sql`ALTER TABLE pixel_orders ADD COLUMN IF NOT EXISTS tile_pixels JSONB;`;
   initialized = true;
 }
 

@@ -5,6 +5,7 @@ import Stripe from "stripe";
 
 const TILE_COLUMNS = 16;
 const TILE_COUNT = 384;
+const PIXELS_PER_TILE = 64;
 const START_PRICE_CENTS = 500;
 const BID_STEP_CENTS = 100;
 const RESERVATION_SECONDS = 31 * 60;
@@ -42,6 +43,23 @@ function isRectangle(indices: number[]): boolean {
   return true;
 }
 
+function parseArtwork(body: any, tileIndices: number[]): string[] | { error: string } {
+  const raw = Array.isArray(body?.tiles) ? body.tiles : [];
+  const byIndex = new Map<number, string>();
+  for (const item of raw) {
+    const index = parseInt(String(item?.index), 10);
+    const pixels = typeof item?.pixels === "string" ? item.pixels.toLowerCase() : "";
+    if (Number.isNaN(index) || pixels.length !== PIXELS_PER_TILE || !/^[0-9a-f]+$/.test(pixels)) {
+      return { error: "Desenho inválido." };
+    }
+    byIndex.set(index, pixels);
+  }
+  if (tileIndices.some((index) => !byIndex.has(index))) {
+    return { error: "O desenho não cobre toda a área selecionada." };
+  }
+  return tileIndices.map((index) => byIndex.get(index) as string);
+}
+
 async function ensurePixelTables() {
   if (initialized) return;
   await sql`
@@ -73,6 +91,7 @@ async function ensurePixelTables() {
       completed_at TIMESTAMP WITH TIME ZONE
     );
   `;
+  await sql`ALTER TABLE pixel_orders ADD COLUMN IF NOT EXISTS tile_pixels JSONB;`;
   initialized = true;
 }
 
@@ -124,6 +143,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       !isRectangle(tileIndices)
     ) {
       return res.status(400).json({ error: "Selecione uma área retangular válida." });
+    }
+
+    const artwork = parseArtwork(req.body, tileIndices);
+    if ("error" in artwork) {
+      return res.status(400).json({ error: artwork.error });
     }
 
     const orderId = randomUUID();
@@ -204,9 +228,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
       await client.query(
         `INSERT INTO pixel_orders
-           (order_id, owner_hash, tile_indices, tile_prices, total_cents, status)
-         VALUES ($1, $2, $3::jsonb, $4::jsonb, $5, 'pending')`,
-        [orderId, ownerHash, JSON.stringify(tileIndices), JSON.stringify(tilePrices), totalCents]
+           (order_id, owner_hash, tile_indices, tile_prices, tile_pixels, total_cents, status)
+         VALUES ($1, $2, $3::jsonb, $4::jsonb, $5::jsonb, $6, 'pending')`,
+        [
+          orderId,
+          ownerHash,
+          JSON.stringify(tileIndices),
+          JSON.stringify(tilePrices),
+          JSON.stringify(artwork),
+          totalCents,
+        ]
       );
       await client.query("COMMIT");
     } catch (error) {

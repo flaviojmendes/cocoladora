@@ -10,6 +10,13 @@ export const PIXELS_PER_TILE = TILE_SIZE * TILE_SIZE;
 export const START_PRICE_CENTS = 500;
 export const BID_STEP_CENTS = 100;
 export const PIXEL_OWNER_TOKEN_KEY = "cocoladora_pixel_owner";
+export const PIXEL_DRAFT_KEY = "cocoladora_pixel_draft";
+
+export type PixelDraft = {
+  tileIndices: number[];
+  tiles: Array<{ index: number; pixels: string }>;
+  bidInput: string;
+};
 
 export const PIXEL_PALETTE = [
   "transparent",
@@ -101,6 +108,42 @@ export function formatBRL(cents: number): string {
     style: "currency",
     currency: "BRL",
   }).format(cents / 100);
+}
+
+export function mergeTilePixels(
+  tiles: DoorPixelTile[],
+  updates: Array<{ index: number; pixels: string }>
+): DoorPixelTile[] {
+  if (!updates.length) return tiles;
+  const byIndex = new Map(updates.map((item) => [item.index, normalizeTilePixels(item.pixels)]));
+  return tiles.map((tile) => {
+    const pixels = byIndex.get(tile.index);
+    return pixels ? { ...tile, pixels } : tile;
+  });
+}
+
+export function readPixelDraft(): PixelDraft | null {
+  try {
+    const raw = sessionStorage.getItem(PIXEL_DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PixelDraft;
+    if (!Array.isArray(parsed.tileIndices) || !Array.isArray(parsed.tiles)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function writePixelDraft(draft: PixelDraft) {
+  try {
+    sessionStorage.setItem(PIXEL_DRAFT_KEY, JSON.stringify(draft));
+  } catch {}
+}
+
+export function clearPixelDraft() {
+  try {
+    sessionStorage.removeItem(PIXEL_DRAFT_KEY);
+  } catch {}
 }
 
 export function composeDoorPixels(tiles: DoorPixelTile[]): string[] {

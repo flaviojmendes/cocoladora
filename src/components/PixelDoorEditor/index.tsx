@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { DoorPixelTile, PixelSelection } from "../../entities/DoorPixel";
 import { translate } from "../../languages/translator";
 import {
@@ -14,7 +14,9 @@ type Props = {
   tiles: DoorPixelTile[];
   selection: PixelSelection;
   saving: boolean;
+  requiresPayment?: boolean;
   onCancel: () => void;
+  onDraftChange?: (updates: Array<{ index: number; pixels: string }>) => void;
   onSave: (updates: Array<{ index: number; pixels: string }>) => void;
 };
 
@@ -43,8 +45,16 @@ function buildArtwork(tiles: DoorPixelTile[], selection: PixelSelection) {
   return { area, width, height, pixels };
 }
 
-export function PixelDoorEditor({ tiles, selection, saving, onCancel, onSave }: Props) {
-  const initial = useMemo(() => buildArtwork(tiles, selection), [tiles, selection]);
+export function PixelDoorEditor({
+  tiles,
+  selection,
+  saving,
+  requiresPayment = false,
+  onCancel,
+  onDraftChange,
+  onSave,
+}: Props) {
+  const [initial] = useState(() => buildArtwork(tiles, selection));
   const [pixels, setPixels] = useState<string[]>(initial.pixels);
   const [colorIndex, setColorIndex] = useState(1);
   const [text, setText] = useState("");
@@ -53,10 +63,6 @@ export function PixelDoorEditor({ tiles, selection, saving, onCancel, onSave }: 
   const editorScale = Math.min(416 / initial.width, 416 / initial.height);
   const editorWidth = Math.max(initial.width, Math.floor(initial.width * editorScale));
   const editorHeight = Math.max(initial.height, Math.floor(initial.height * editorScale));
-
-  useEffect(() => {
-    setPixels(initial.pixels);
-  }, [initial]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -126,8 +132,8 @@ export function PixelDoorEditor({ tiles, selection, saving, onCancel, onSave }: 
     );
   };
 
-  const save = () => {
-    const updates = selectionTileIndices(initial.area).map((index) => {
+  const packTiles = (source: string[]) =>
+    selectionTileIndices(initial.area).map((index) => {
       const tileX = (index % TILE_COLUMNS) - initial.area.startCol;
       const tileY = Math.floor(index / TILE_COLUMNS) - initial.area.startRow;
       let tilePixels = "";
@@ -135,12 +141,18 @@ export function PixelDoorEditor({ tiles, selection, saving, onCancel, onSave }: 
         for (let x = 0; x < TILE_SIZE; x += 1) {
           const localX = tileX * TILE_SIZE + x;
           const localY = tileY * TILE_SIZE + y;
-          tilePixels += pixels[localY * initial.width + localX];
+          tilePixels += source[localY * initial.width + localX];
         }
       }
       return { index, pixels: tilePixels };
     });
-    onSave(updates);
+
+  useEffect(() => {
+    onDraftChange?.(packTiles(pixels));
+  }, [pixels]);
+
+  const save = () => {
+    onSave(packTiles(pixels));
   };
 
   return (
@@ -230,7 +242,13 @@ export function PixelDoorEditor({ tiles, selection, saving, onCancel, onSave }: 
           disabled={saving}
           className="flex-1 py-3 rounded-xl bg-primary hover:bg-primary-dark text-background font-secondary text-xl font-bold disabled:opacity-60"
         >
-          {saving ? translate("adminSaving") : translate("pixelSaveArt")}
+          {saving
+            ? requiresPayment
+              ? translate("pixelOpeningStripe")
+              : translate("adminSaving")
+            : requiresPayment
+              ? translate("pixelSaveAndPay")
+              : translate("pixelSaveArt")}
         </button>
       </div>
     </div>

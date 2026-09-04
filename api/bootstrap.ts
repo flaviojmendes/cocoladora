@@ -18,6 +18,7 @@ async function ensureTables() {
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
   `;
+  await sql`ALTER TABLE locations ADD COLUMN IF NOT EXISTS owner_hash VARCHAR(64);`;
   await sql`
     CREATE TABLE IF NOT EXISTS places (
       id VARCHAR(64) PRIMARY KEY,

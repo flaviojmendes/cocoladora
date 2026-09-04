@@ -7,4 +7,5 @@ export interface Location {
   timeended?: string;
   day?: string;
   city?: string;
+  mine?: boolean;
 }

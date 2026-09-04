@@ -10,6 +10,8 @@ async function readRawBody(req: VercelRequest): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
+const BLANK_PIXELS = "0".repeat(64);
+
 function asNumberArray(value: unknown): number[] {
   if (Array.isArray(value)) return value.map(Number);
   if (typeof value === "string") {
@@ -23,12 +25,28 @@ function asNumberArray(value: unknown): number[] {
   return [];
 }
 
+function asPixelArray(value: unknown, count: number): string[] {
+  let parsed: unknown = value;
+  if (typeof value === "string") {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      parsed = [];
+    }
+  }
+  const list = Array.isArray(parsed) ? parsed.map((item) => String(item).toLowerCase()) : [];
+  return Array.from({ length: count }, (_, index) => {
+    const pixels = list[index] || "";
+    return pixels.length === 64 && /^[0-9a-f]+$/.test(pixels) ? pixels : BLANK_PIXELS;
+  });
+}
+
 async function completeOrder(orderId: string) {
   const client = await sql.connect();
   try {
     await client.query("BEGIN");
     const orderResult = await client.query(
-      `SELECT order_id, owner_hash, tile_indices, tile_prices, status
+      `SELECT order_id, owner_hash, tile_indices, tile_prices, tile_pixels, status
        FROM pixel_orders
        WHERE order_id = $1
        FOR UPDATE`,
@@ -42,6 +60,7 @@ async function completeOrder(orderId: string) {
 
     const indices = asNumberArray(order.tile_indices);
     const prices = asNumberArray(order.tile_prices);
+    const artwork = asPixelArray(order.tile_pixels, indices.length);
     if (!indices.length || indices.length !== prices.length) {
       throw new Error("Invalid pixel order data");
     }
@@ -63,14 +82,14 @@ async function completeOrder(orderId: string) {
     await client.query(
       `UPDATE door_pixel_tiles AS tile
        SET price_cents = purchase.price_cents,
-           owner_hash = $3,
-           pixels = '0000000000000000000000000000000000000000000000000000000000000000',
+           owner_hash = $4,
+           pixels = purchase.pixels,
            reserved_by = NULL,
            reserved_until = NULL,
            updated_at = CURRENT_TIMESTAMP
-       FROM unnest($1::smallint[], $2::integer[]) AS purchase(tile_index, price_cents)
+       FROM unnest($1::smallint[], $2::integer[], $3::text[]) AS purchase(tile_index, price_cents, pixels)
        WHERE tile.tile_index = purchase.tile_index`,
-      [indices, prices, order.owner_hash]
+      [indices, prices, artwork, order.owner_hash]
     );
     await client.query(
       `UPDATE pixel_orders
@@ -131,6 +150,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!signature) return res.status(400).json({ error: "Missing Stripe signature." });
 
     const stripe = new Stripe(stripeSecret);
+    await sql`ALTER TABLE pixel_orders ADD COLUMN IF NOT EXISTS tile_pixels JSONB`;
     const event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
     const session = event.data.object as Stripe.Checkout.Session;
     const orderId = session.metadata?.orderId;

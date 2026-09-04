@@ -3,6 +3,15 @@ import { Place } from "../entities/Place";
 import { DoorMessage } from "../entities/DoorMessage";
 import { DoorPixelTile } from "../entities/DoorPixel";
 import { SalaryConfig } from "../entities/SalaryConfig";
+import {
+  clearMyLocationIds,
+  forgetMyLocationId,
+  getLocationOwnerToken,
+  isMyLocationId,
+  readMyLocationIds,
+  rememberMyLocationId,
+  writeMyLocationIds,
+} from "../utils/locationOwner";
 
 const SALARY_CONFIG_KEY = "cocoladora_salary_config";
 const CACHE_LOCATIONS_KEY = "cocoladora_cached_locations";
@@ -91,6 +100,27 @@ function readLegacyMessages(): DoorMessage[] {
   return localMessages;
 }
 
+function applyMineFlags(locations: Location[]): Location[] {
+  const mineIds = new Set(readMyLocationIds());
+  return locations.map((loc) => ({
+    ...loc,
+    mine: Boolean(loc.mine) || mineIds.has(String(loc.id)) || isMyLocationId(loc.id),
+  }));
+}
+
+async function syncMyLocationIdsFromServer() {
+  try {
+    const res = await fetch("/api/locations?mine=1", {
+      cache: "no-store",
+      headers: { "x-location-owner": getLocationOwnerToken() },
+    });
+    const data = await parseResponse(res);
+    if (data && Array.isArray(data.ids)) {
+      writeMyLocationIds([...readMyLocationIds(), ...data.ids]);
+    }
+  } catch {}
+}
+
 function persist(cache: MemoryCache) {
   memory = cache;
   try {
@@ -110,18 +140,21 @@ function readStoredCache(): MemoryCache | null {
     if (!fetchedAt && locations.length === 0 && Object.keys(places).length === 0 && messages.length === 0) {
       return null;
     }
-    return { locations, places, messages, fetchedAt };
+    return { locations: applyMineFlags(locations), places, messages, fetchedAt };
   } catch {
     return null;
   }
 }
 
 function getMemoryOrStore(): MemoryCache {
-  if (memory) return memory;
+  if (memory) {
+    memory = { ...memory, locations: applyMineFlags(memory.locations) };
+    return memory;
+  }
   const stored = readStoredCache();
   if (stored) {
-    memory = stored;
-    return stored;
+    memory = { ...stored, locations: applyMineFlags(stored.locations) };
+    return memory;
   }
   return { locations: [], places: {}, messages: [], fetchedAt: 0 };
 }
@@ -163,13 +196,14 @@ function mergeMessages(remote: DoorMessage[], local: DoorMessage[]): DoorMessage
 export const ApiService = {
   async getBootstrap(): Promise<BootstrapData> {
     if (isFresh(memory)) {
+      memory = { ...memory, locations: applyMineFlags(memory.locations) };
       return memory;
     }
 
     const stored = readStoredCache();
     if (isFresh(stored)) {
-      memory = stored;
-      return stored;
+      memory = { ...stored, locations: applyMineFlags(stored.locations) };
+      return memory;
     }
 
     if (inflight) return inflight;
@@ -211,8 +245,9 @@ export const ApiService = {
           );
         }
 
+        await syncMyLocationIdsFromServer();
         const next: MemoryCache = {
-          locations,
+          locations: applyMineFlags(locations),
           places,
           messages,
           fetchedAt: Date.now(),
@@ -241,61 +276,78 @@ export const ApiService = {
   },
 
   async addLocation(location: Location): Promise<Location[]> {
-    let savedRecord: Location = { ...location, id: Date.now() };
+    const ownerToken = getLocationOwnerToken();
+    let savedRecord: Location = { ...location, id: Date.now(), mine: true };
 
     try {
       const res = await fetch("/api/locations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(location),
+        body: JSON.stringify({ ...location, ownerToken }),
       });
       const saved = await parseResponse(res);
-      if (saved && typeof saved === "object") savedRecord = saved;
+      if (saved && typeof saved === "object") savedRecord = { ...saved, mine: true };
     } catch (err) {
       console.warn("Error posting to /api/locations:", err);
     }
 
+    rememberMyLocationId(savedRecord.id);
     const current = getMemoryOrStore();
-    const exists = current.locations.some((l) => areLocationsEqual(l, savedRecord));
-    const locations = exists ? current.locations : [savedRecord, ...current.locations];
+    const existsById =
+      savedRecord.id !== undefined &&
+      current.locations.some((loc) => String(loc.id) === String(savedRecord.id));
+    const locations = applyMineFlags(
+      existsById ? current.locations : [savedRecord, ...current.locations]
+    );
     persist({ ...current, locations });
     return locations;
   },
 
   async removeLocation(id?: number | string, index?: number): Promise<Location[]> {
+    const current = getMemoryOrStore();
+    const target =
+      id !== undefined
+        ? current.locations.find((loc) => String(loc.id) === String(id))
+        : current.locations.filter((loc) => loc.mine)[index ?? -1];
+
+    if (!target || (!target.mine && !isMyLocationId(target.id))) {
+      return applyMineFlags(current.locations);
+    }
+
     try {
-      if (id) {
-        await fetch(`/api/locations?id=${encodeURIComponent(id)}`, {
+      if (target.id !== undefined) {
+        await fetch(`/api/locations?id=${encodeURIComponent(String(target.id))}`, {
           method: "DELETE",
+          headers: { "x-location-owner": getLocationOwnerToken() },
         });
       }
     } catch (err) {
       console.warn("Error deleting location from /api/locations:", err);
     }
 
-    const current = getMemoryOrStore();
-    const locations = current.locations.filter((loc, idx) => {
-      if (id !== undefined && loc.id !== undefined) {
-        return String(loc.id) !== String(id);
-      }
-      return idx !== index;
-    });
+    forgetMyLocationId(target.id);
+    const locations = applyMineFlags(
+      current.locations.filter((loc) => String(loc.id) !== String(target.id))
+    );
     persist({ ...current, locations });
-    try {
-      localStorage.setItem("locations", JSON.stringify(locations));
-    } catch {}
     return locations;
   },
 
   async clearLocations(): Promise<Location[]> {
-    for (const key of LEGACY_LOCATION_KEYS) {
-      try {
-        localStorage.removeItem(key);
-      } catch {}
+    try {
+      await fetch("/api/locations?mine=1", {
+        method: "DELETE",
+        headers: { "x-location-owner": getLocationOwnerToken() },
+      });
+    } catch (err) {
+      console.warn("Error clearing own locations from /api/locations:", err);
     }
+
     const current = getMemoryOrStore();
-    persist({ ...current, locations: [] });
-    return [];
+    const locations = current.locations.filter((loc) => !loc.mine);
+    clearMyLocationIds();
+    persist({ ...current, locations });
+    return locations;
   },
 
   async getPlaces(): Promise<{ [key: string]: Place }> {
@@ -367,6 +419,7 @@ export const ApiService = {
     ownerToken: string;
     tileIndices: number[];
     bidTotalCents: number;
+    tiles: Array<{ index: number; pixels: string }>;
   }): Promise<{ checkoutUrl: string; totalCents: number; tileCount: number }> {
     const res = await fetch("/api/pixel-checkout", {
       method: "POST",

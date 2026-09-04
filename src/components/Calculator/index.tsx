@@ -1,5 +1,5 @@
 import html2canvas from "html2canvas";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import ReactGA from "react-ga4";
 
 import {
@@ -252,10 +252,15 @@ export function Calculator({
     }
   };
 
-  const handleDeleteLocation = async (index: number) => {
+  const myLocations = useMemo(
+    () => locations.filter((loc) => loc.mine),
+    [locations]
+  );
+
+  const handleDeleteLocation = async (target: Location) => {
+    if (!target.mine) return;
     AudioService.playPop();
-    const target = locations[index];
-    const updated = await StorageService.removeLocation(target?.id, index);
+    const updated = await StorageService.removeLocation(target.id);
     setLocations(updated);
     onLocationsUpdated?.(updated);
   };
@@ -371,7 +376,7 @@ export function Calculator({
               {showHistory ? translate("closePaycheck") : translate("myPaycheck")}
             </span>
             <span className="bg-primary text-background text-xs px-2 py-0.5 rounded-full font-typewriter font-bold">
-              {locations.length}
+              {myLocations.length}
             </span>
           </button>
         </div>
@@ -389,7 +394,7 @@ export function Calculator({
                   {translate("paycheckNote")}
                 </p>
               </div>
-              {locations.length > 0 && (
+              {myLocations.length > 0 && (
                 <button
                   onClick={handleClearHistory}
                   className="flex items-center gap-1.5 text-sm text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg border border-red-200 transition-colors"
@@ -400,7 +405,7 @@ export function Calculator({
               )}
             </div>
 
-            {locations.length === 0 ? (
+            {myLocations.length === 0 ? (
               <div className="text-center py-12 bg-background-dark/50 rounded-xl border-2 border-dashed border-primary/30">
                 <FaPoop className="text-primary/40 text-5xl mx-auto mb-3" />
                 <p className="font-secondary text-xl text-secondary-light">
@@ -420,8 +425,8 @@ export function Calculator({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 text-secondary text-sm sm:text-base">
-                    {locations.map((loc, idx) => (
-                      <tr key={idx} className="hover:bg-amber-50/50 transition-colors">
+                    {myLocations.map((loc) => (
+                      <tr key={String(loc.id)} className="hover:bg-amber-50/50 transition-colors">
                         <td className="py-2.5 px-3 whitespace-nowrap">{loc.day || "-"}</td>
                         <td className="py-2.5 px-3 whitespace-nowrap">
                           {loc.timestarted && loc.timeended
@@ -438,7 +443,7 @@ export function Calculator({
                         </td>
                         <td className="py-2.5 px-3 text-center">
                           <button
-                            onClick={() => handleDeleteLocation(idx)}
+                            onClick={() => handleDeleteLocation(loc)}
                             aria-label="Delete entry"
                             className="p-1.5 text-gray-400 hover:text-red-500 rounded transition-colors"
                           >
