@@ -1,6 +1,7 @@
 import { Location } from "../entities/Location";
 import { Place } from "../entities/Place";
 import { DoorMessage } from "../entities/DoorMessage";
+import { DoorPixelTile } from "../entities/DoorPixel";
 import { SalaryConfig } from "../entities/SalaryConfig";
 
 const SALARY_CONFIG_KEY = "cocoladora_salary_config";
@@ -330,6 +331,66 @@ export const ApiService = {
   async getDoorMessages(): Promise<DoorMessage[]> {
     const data = await this.getBootstrap();
     return data.messages;
+  },
+
+  async getDoorPixelTiles(ownerToken: string): Promise<DoorPixelTile[]> {
+    const res = await fetch("/api/pixels", {
+      cache: "no-store",
+      headers: { "x-pixel-owner": ownerToken },
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Não foi possível carregar os pixels.");
+    }
+    return res.json();
+  },
+
+  async saveDoorPixelTiles(
+    ownerToken: string,
+    tiles: Array<{ index: number; pixels: string }>
+  ): Promise<void> {
+    const res = await fetch("/api/pixels", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "x-pixel-owner": ownerToken,
+      },
+      body: JSON.stringify({ tiles }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Não foi possível salvar o desenho.");
+    }
+  },
+
+  async createPixelCheckout(input: {
+    ownerToken: string;
+    tileIndices: number[];
+    bidTotalCents: number;
+  }): Promise<{ checkoutUrl: string; totalCents: number; tileCount: number }> {
+    const res = await fetch("/api/pixel-checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || "Não foi possível iniciar o pagamento.");
+    }
+    return data;
+  },
+
+  async getPixelCheckoutStatus(
+    sessionId: string
+  ): Promise<{ status: string; tileIndices: number[]; totalCents: number }> {
+    const res = await fetch(`/api/pixel-checkout?session_id=${encodeURIComponent(sessionId)}`, {
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || "Não foi possível confirmar a compra.");
+    }
+    return data;
   },
 
   async addDoorMessage(msg: Omit<DoorMessage, "id"> & { id?: string }): Promise<DoorMessage[]> {

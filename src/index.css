@@ -207,122 +207,282 @@ body,
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
 }
 
-.stall-door__writing {
-  position: relative;
-  z-index: 10;
+.pixel-door {
+  aspect-ratio: 2 / 3;
+  min-height: 0;
+  touch-action: none;
 }
 
-.graffiti {
+.pixel-door__art {
   position: absolute;
-  margin: 0;
+  inset: 0;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.pixel-door__tiles {
+  position: absolute;
+  inset: 0;
+  z-index: 17;
+  display: grid;
   padding: 0;
-  background: none;
-  border: none;
-  box-shadow: none;
-  backdrop-filter: none;
-  line-height: 1.12;
-  word-break: break-word;
-  cursor: default;
 }
 
-.graffiti p {
-  margin: 0;
-  text-wrap: pretty;
+.pixel-door__tile {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0.5px solid rgba(252, 249, 234, 0.05);
+  background: transparent;
+  cursor: crosshair;
 }
 
-.graffiti--ink p {
-  mix-blend-mode: multiply;
-  text-shadow: 0.4px 0.7px 0 rgba(20, 12, 8, 0.28);
+.pixel-door__tile:hover,
+.pixel-door__tile:focus-visible {
+  background: rgba(252, 249, 234, 0.13);
+  outline: 1px solid rgba(252, 249, 234, 0.75);
+  outline-offset: -1px;
 }
 
-.graffiti--chalk p {
-  mix-blend-mode: normal;
-  text-shadow:
-    0 0 1px rgba(20, 12, 8, 0.55),
-    0.5px 0.5px 0 rgba(20, 12, 8, 0.35);
+.pixel-door__tile--selected {
+  z-index: 2;
+  background: rgba(245, 158, 11, 0.26);
+  box-shadow: inset 0 0 0 1px #fbbf24;
 }
 
-.graffiti--fat p {
-  font-family: "Permanent Marker", cursive;
-  letter-spacing: 0.01em;
+.pixel-door__tile--mine:not(.pixel-door__tile--selected)::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border: 1px dotted rgba(167, 243, 208, 0.42);
 }
 
-.graffiti--scratch p {
-  font-family: "Rock Salt", cursive;
-  line-height: 1.35;
+.pixel-door__tile--reserved {
+  cursor: wait;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 3px,
+    rgba(127, 29, 29, 0.3) 3px 5px
+  );
 }
 
-.graffiti--spray p {
-  font-family: "Rubik Wet Paint", cursive;
-  letter-spacing: 0.02em;
+.pixel-door__loading {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  color: #fcf9ea;
+  background: rgba(35, 27, 21, 0.7);
+  font-family: Boogaloo, sans-serif;
+  font-size: 1.25rem;
 }
 
-.graffiti--pixa p {
-  font-family: Teko, sans-serif;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: -0.03em;
-  line-height: 0.92;
-  transform: scaleY(1.38);
-  transform-origin: left center;
-}
-
-.graffiti--marker p {
-  font-family: "Sedgwick Ave", cursive;
-}
-
-.graffiti__ticks {
+.pixel-door-guide {
   display: flex;
-  gap: 0.45rem;
-  margin-top: 0.2rem;
-  opacity: 0.4;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.65rem 0;
+  color: rgba(252, 249, 234, 0.75);
   font-family: Cousine, monospace;
-  font-size: 0.7rem;
-  letter-spacing: 0.02em;
-  transition: opacity 180ms ease;
+  font-size: 0.75rem;
 }
 
-.graffiti:hover,
-.graffiti:focus-within {
-  z-index: 30 !important;
+.pixel-door-guide span,
+.pixel-door-guide button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
-.graffiti:hover .graffiti__ticks,
-.graffiti:focus-within .graffiti__ticks {
-  opacity: 0.9;
-}
-
-.graffiti__ticks button {
-  background: none;
-  border: none;
-  padding: 0;
-  color: inherit;
+.pixel-door-guide button {
+  flex: none;
+  padding: 0.35rem 0.5rem;
+  color: #fcf9ea;
+  border: 1px solid rgba(252, 249, 234, 0.28);
+  background: rgba(41, 36, 32, 0.45);
   font: inherit;
-  cursor: pointer;
-  opacity: 0.85;
 }
 
-.graffiti__ticks button:hover,
-.graffiti__ticks button:focus-visible {
-  opacity: 1;
-  outline: 1px dashed currentColor;
+.pixel-door-guide button:hover,
+.pixel-door-guide button:focus-visible {
+  border-color: #fcf9ea;
+  outline: none;
+}
+
+.pixel-purchase-panel {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  color: #292420;
+  background: #fcf9ea;
+  border: 1px solid #815028;
+  border-top: 5px solid #815028;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.3);
+}
+
+.pixel-purchase-panel > div:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-family: Cousine, monospace;
+}
+
+.pixel-purchase-panel__eyebrow {
+  color: #693a20;
+  font-size: 0.75rem;
+}
+
+.pixel-purchase-panel__warning {
+  margin: 0;
+  padding: 0.7rem;
+  color: #991b1b;
+  background: #fef2f2;
+  font-family: Cousine, monospace;
+  font-size: 0.8rem;
+}
+
+.pixel-bid-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #693a20;
+  font-family: Boogaloo, sans-serif;
+}
+
+.pixel-bid-field__input {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.65rem;
+  border: 2px solid #693a20;
+  background: #fff;
+  font-family: Cousine, monospace;
+}
+
+.pixel-bid-field__input input {
+  width: 7rem;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: #292420;
+  background: transparent;
+  font: inherit;
+  text-align: right;
+}
+
+.pixel-purchase-panel__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 3rem;
+  padding: 0.65rem 1rem;
+  color: #fcf9ea;
+  background: #815028;
+  font-family: Boogaloo, sans-serif;
+  font-size: 1.25rem;
+  transition: background-color 180ms ease, transform 180ms ease;
+}
+
+.pixel-purchase-panel__action:hover:not(:disabled) {
+  background: #693a20;
+  transform: translateY(-1px);
+}
+
+.pixel-purchase-panel__action:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.pixel-purchase-panel__action:focus-visible {
+  outline: 3px solid #f59e0b;
   outline-offset: 2px;
 }
 
-.graffiti:focus-visible {
-  outline: 1px dashed currentColor;
-  outline-offset: 4px;
+.pixel-purchase-panel__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
-.graffiti-doodle {
-  position: absolute;
-  pointer-events: none;
-  opacity: 0.7;
+.pixel-purchase-panel__fineprint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: #6b5d53;
+  font-family: Cousine, monospace;
+  font-size: 0.7rem;
+}
+
+.pixel-editor-stage {
+  display: grid;
+  place-items: center;
+  min-height: 18rem;
+  max-height: 28rem;
+  padding: 1rem;
+  overflow: hidden;
+  background-color: #6d4a30;
+  background-image:
+    linear-gradient(45deg, rgba(41, 36, 32, 0.15) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(41, 36, 32, 0.15) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(41, 36, 32, 0.15) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(41, 36, 32, 0.15) 75%);
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-size: 16px 16px;
+  border: 4px solid #292420;
+}
+
+.pixel-editor-stage canvas {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 26rem;
+  aspect-ratio: auto;
+  image-rendering: pixelated;
+  cursor: crosshair;
+  touch-action: none;
+  background: rgba(109, 74, 48, 0.75);
+  box-shadow: 0 0 0 1px rgba(252, 249, 234, 0.22);
+}
+
+.pixel-swatch {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid #fcf9ea;
+  box-shadow: 0 0 0 1px rgba(41, 36, 32, 0.35);
+}
+
+.pixel-swatch--active {
+  box-shadow: 0 0 0 3px #815028;
+}
+
+.pixel-swatch--eraser {
+  background:
+    linear-gradient(45deg, transparent 42%, #b91c1c 43% 57%, transparent 58%),
+    repeating-conic-gradient(#fff 0 25%, #d6d3d1 0 50%) 50% / 8px 8px;
+}
+
+@media (max-width: 480px) {
+  .pixel-bid-field {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pixel-bid-field__input {
+    justify-content: space-between;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .graffiti__ticks {
-    opacity: 0.75;
+  .pixel-purchase-panel__action {
     transition: none;
   }
 }
