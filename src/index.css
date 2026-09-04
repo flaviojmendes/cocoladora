@@ -47,3 +47,282 @@ body,
 .cluster-rated {
   background: #0f766e;
 }
+
+/* Community stall door: physical box door, not a card wall */
+.stall-alcove {
+  background-color: #3a332d;
+  background-image:
+    linear-gradient(rgba(22, 18, 14, 0.28) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(22, 18, 14, 0.28) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(90, 78, 68, 0.35), rgba(40, 34, 28, 0.5));
+  background-size: 48px 48px, 48px 48px, 100% 100%;
+  box-shadow: inset 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.stall-frame {
+  background: linear-gradient(180deg, #2a241f 0%, #1a1613 100%);
+  padding: 9px 7px 12px;
+  box-shadow:
+    0 28px 48px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.stall-door {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
+  background-color: #6d4a30;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      #624228 0px,
+      #7a5536 11px,
+      #5a3c26 22px,
+      #82603c 34px,
+      #624228 46px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      rgba(0, 0, 0, 0.05) 1px,
+      transparent 28px
+    );
+  box-shadow: inset 0 0 40px rgba(30, 18, 10, 0.35);
+}
+
+.stall-door__scratches,
+.stall-door__grime {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.stall-door__scratches {
+  opacity: 0.22;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='400'%3E%3Cpath d='M20 40 L90 48 M40 120 L180 108 M12 210 L70 230 M200 60 L250 90 M30 300 L140 280 M160 340 L240 355' stroke='%231a120c' stroke-width='1' fill='none' opacity='.7'/%3E%3Cpath d='M70 80 L72 200 M190 140 L188 310' stroke='%231a120c' stroke-width='.6' fill='none' opacity='.45'/%3E%3C/svg%3E");
+  background-size: 280px 400px;
+}
+
+.stall-door__grime {
+  z-index: 16;
+  background:
+    radial-gradient(ellipse at 50% 18%, transparent 40%, rgba(20, 12, 8, 0.28) 100%),
+    linear-gradient(180deg, transparent 70%, rgba(20, 12, 8, 0.28) 100%);
+}
+
+.stall-door__vents {
+  position: absolute;
+  top: 10px;
+  left: 18px;
+  right: 54px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  z-index: 18;
+  pointer-events: none;
+}
+
+.stall-door__vent {
+  height: 5px;
+  border-radius: 1px;
+  background: linear-gradient(180deg, #2a1c12, #1a120c);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.6);
+}
+
+.stall-hinge {
+  position: absolute;
+  left: 0;
+  width: 16px;
+  height: 42px;
+  z-index: 20;
+  background: linear-gradient(90deg, #9a9184 0%, #6e675c 40%, #3d3934 100%);
+  box-shadow: 1px 2px 3px rgba(0, 0, 0, 0.4);
+  border-radius: 0 2px 2px 0;
+}
+
+.stall-latch {
+  position: absolute;
+  top: 42%;
+  right: 8px;
+  z-index: 20;
+  width: 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.stall-latch__plate {
+  position: relative;
+  width: 34px;
+  height: 58px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #8d867c, #4e4943);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+}
+
+.stall-latch__slider {
+  position: absolute;
+  top: 16px;
+  left: 6px;
+  width: 22px;
+  height: 12px;
+  border-radius: 1px;
+  background: #8b1e1e;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.stall-latch__stamp {
+  font-family: Cousine, monospace;
+  font-size: 7px;
+  letter-spacing: 0.14em;
+  color: rgba(252, 249, 234, 0.55);
+}
+
+.stall-hook {
+  position: absolute;
+  top: 46px;
+  left: 50%;
+  width: 14px;
+  height: 18px;
+  z-index: 18;
+  border: 2px solid #3d3832;
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.stall-kick {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 42px;
+  z-index: 18;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(40, 30, 22, 0.15), #3b322b 30%, #2a241f);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+
+.stall-door__writing {
+  position: relative;
+  z-index: 10;
+}
+
+.graffiti {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  line-height: 1.12;
+  word-break: break-word;
+  cursor: default;
+}
+
+.graffiti p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.graffiti--ink p {
+  mix-blend-mode: multiply;
+  text-shadow: 0.4px 0.7px 0 rgba(20, 12, 8, 0.28);
+}
+
+.graffiti--chalk p {
+  mix-blend-mode: normal;
+  text-shadow:
+    0 0 1px rgba(20, 12, 8, 0.55),
+    0.5px 0.5px 0 rgba(20, 12, 8, 0.35);
+}
+
+.graffiti--fat p {
+  font-family: "Permanent Marker", cursive;
+  letter-spacing: 0.01em;
+}
+
+.graffiti--scratch p {
+  font-family: "Rock Salt", cursive;
+  line-height: 1.35;
+}
+
+.graffiti--spray p {
+  font-family: "Rubik Wet Paint", cursive;
+  letter-spacing: 0.02em;
+}
+
+.graffiti--pixa p {
+  font-family: Teko, sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: -0.03em;
+  line-height: 0.92;
+  transform: scaleY(1.38);
+  transform-origin: left center;
+}
+
+.graffiti--marker p {
+  font-family: "Sedgwick Ave", cursive;
+}
+
+.graffiti__ticks {
+  display: flex;
+  gap: 0.45rem;
+  margin-top: 0.2rem;
+  opacity: 0.4;
+  font-family: Cousine, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  transition: opacity 180ms ease;
+}
+
+.graffiti:hover,
+.graffiti:focus-within {
+  z-index: 30 !important;
+}
+
+.graffiti:hover .graffiti__ticks,
+.graffiti:focus-within .graffiti__ticks {
+  opacity: 0.9;
+}
+
+.graffiti__ticks button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.graffiti__ticks button:hover,
+.graffiti__ticks button:focus-visible {
+  opacity: 1;
+  outline: 1px dashed currentColor;
+  outline-offset: 2px;
+}
+
+.graffiti:focus-visible {
+  outline: 1px dashed currentColor;
+  outline-offset: 4px;
+}
+
+.graffiti-doodle {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graffiti__ticks {
+    opacity: 0.75;
+    transition: none;
+  }
+}

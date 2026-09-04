@@ -111,7 +111,7 @@ export function Menu({
               {translate("writeMessage")} ✍️
             </span>
             <span className="font-secondary text-sm sm:text-base opacity-90 block mt-1">
-              Deixe seu grafite na porta do trono
+              {translate("doorMenuHint")}
             </span>
           </div>
           <img
