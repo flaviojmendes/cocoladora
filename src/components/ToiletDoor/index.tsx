@@ -61,9 +61,27 @@ function parseBidInput(value: string): number {
   return Math.round(Number(normalized) * 100);
 }
 
+function tileIndexFromRect(rect: DOMRect, clientX: number, clientY: number) {
+  const col = Math.max(
+    0,
+    Math.min(TILE_COLUMNS - 1, Math.floor(((clientX - rect.left) / rect.width) * TILE_COLUMNS))
+  );
+  const row = Math.max(
+    0,
+    Math.min(TILE_ROWS - 1, Math.floor(((clientY - rect.top) / rect.height) * TILE_ROWS))
+  );
+  return row * TILE_COLUMNS + col;
+}
+
+const TAP_PX = 10;
+
 export function ToiletDoor() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const doorRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
+  const didDragRef = useRef(false);
+  const pointerStartRef = useRef<{ x: number; y: number; index: number } | null>(null);
+  const tilesRef = useRef<DoorPixelTile[]>(emptyPixelTiles());
   const anchorRef = useRef<{ col: number; row: number } | null>(null);
   const [ownerToken, setOwnerToken] = useState(getPixelOwnerToken);
   const [tiles, setTiles] = useState<DoorPixelTile[]>(emptyPixelTiles);
@@ -81,6 +99,7 @@ export function ToiletDoor() {
   const [draftHref, setDraftHref] = useState("");
   const [draftPoster, setDraftPoster] = useState("");
   const canDrawRef = useRef(false);
+  tilesRef.current = tiles;
 
   const loadTiles = useCallback(async () => {
     try {
@@ -118,9 +137,19 @@ export function ToiletDoor() {
     const stopDragging = () => {
       const wasDragging = draggingRef.current;
       draggingRef.current = false;
-      if (wasDragging && canDrawRef.current) {
-        setEditorOpen(true);
+      if (!wasDragging) return;
+      if (!didDragRef.current) {
+        const start = pointerStartRef.current;
+        const tile = start ? tilesRef.current[start.index] : undefined;
+        if (tile?.href && tile.image) return;
+        if (tile?.href) {
+          window.open(tile.href, "_blank", "noopener,noreferrer");
+          setEditorOpen(false);
+          setSelection(null);
+          return;
+        }
       }
+      if (canDrawRef.current) setEditorOpen(true);
     };
     window.addEventListener("pointerup", stopDragging);
     window.addEventListener("pointercancel", stopDragging);
@@ -251,6 +280,19 @@ export function ToiletDoor() {
     setBidInput(sameDraft ? draft!.bidInput : formatBidInput(minimumBid));
   }, [minimumBid, selectedKey, selectionIsMine]);
 
+  const beginPointer = (index: number, clientX: number, clientY: number) => {
+    didDragRef.current = false;
+    pointerStartRef.current = { x: clientX, y: clientY, index };
+    startSelection(index);
+  };
+
+  const notePointerMove = (clientX: number, clientY: number, index?: number) => {
+    const start = pointerStartRef.current;
+    if (!start) return;
+    if (Math.hypot(clientX - start.x, clientY - start.y) > TAP_PX) didDragRef.current = true;
+    if (index !== undefined && index !== start.index) didDragRef.current = true;
+  };
+
   const startSelection = (index: number) => {
     const col = index % TILE_COLUMNS;
     const row = Math.floor(index / TILE_COLUMNS);
@@ -264,8 +306,9 @@ export function ToiletDoor() {
     AudioService.playPop();
   };
 
-  const extendSelection = (index: number) => {
+  const extendSelection = (index: number, event?: { clientX: number; clientY: number }) => {
     if (!draggingRef.current || !anchorRef.current) return;
+    notePointerMove(event?.clientX ?? pointerStartRef.current?.x ?? 0, event?.clientY ?? pointerStartRef.current?.y ?? 0, index);
     setSelection({
       startCol: anchorRef.current.col,
       startRow: anchorRef.current.row,
@@ -274,22 +317,15 @@ export function ToiletDoor() {
     });
   };
 
-  const extendSelectionAtPointer = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!draggingRef.current || !anchorRef.current) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const col = Math.max(
-      0,
-      Math.min(TILE_COLUMNS - 1, Math.floor(((event.clientX - rect.left) / rect.width) * TILE_COLUMNS))
-    );
-    const row = Math.max(
-      0,
-      Math.min(TILE_ROWS - 1, Math.floor(((event.clientY - rect.top) / rect.height) * TILE_ROWS))
-    );
+  const extendSelectionAtPointer = (event: React.PointerEvent) => {
+    if (!draggingRef.current || !anchorRef.current || !doorRef.current) return;
+    const index = tileIndexFromRect(doorRef.current.getBoundingClientRect(), event.clientX, event.clientY);
+    notePointerMove(event.clientX, event.clientY, index);
     setSelection({
       startCol: anchorRef.current.col,
       startRow: anchorRef.current.row,
-      endCol: col,
-      endRow: row,
+      endCol: index % TILE_COLUMNS,
+      endRow: Math.floor(index / TILE_COLUMNS),
     });
   };
 
@@ -416,7 +452,7 @@ export function ToiletDoor() {
         )}
 
         <div className="stall-frame w-full">
-          <div className="stall-door pixel-door">
+          <div ref={doorRef} className="stall-door pixel-door">
             <div className="stall-door__scratches" />
             <div className="stall-door__vents" aria-hidden="true">
               <span className="stall-door__vent" />
@@ -443,20 +479,56 @@ export function ToiletDoor() {
               aria-label={translate("pixelDoorCanvas")}
             />
 
-            {doorPosters.map((region) => (
-              <img
-                key={region.id}
-                src={region.image}
-                alt=""
-                className="pixel-door__poster"
-                style={{
-                  left: `${region.left}%`,
-                  top: `${region.top}%`,
-                  width: `${region.width}%`,
-                  height: `${region.height}%`,
-                }}
-              />
-            ))}
+            {doorPosters.map((region) => {
+              const style = {
+                left: `${region.left}%`,
+                top: `${region.top}%`,
+                width: `${region.width}%`,
+                height: `${region.height}%`,
+              };
+              if (!region.href) {
+                return (
+                  <img
+                    key={region.id}
+                    src={region.image}
+                    alt=""
+                    className="pixel-door__poster"
+                    style={style}
+                  />
+                );
+              }
+              return (
+                <a
+                  key={region.id}
+                  href={region.href}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow ugc"
+                  className={`pixel-door__poster-link ${editorOpen ? "pixel-door__poster-link--idle" : ""}`}
+                  style={style}
+                  aria-label={`${translate("pixelOpenLink")} ${doorHrefHost(region.href)}`}
+                  onPointerDown={(event) => {
+                    if (editorOpen || !doorRef.current) return;
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    beginPointer(
+                      tileIndexFromRect(doorRef.current.getBoundingClientRect(), event.clientX, event.clientY),
+                      event.clientX,
+                      event.clientY
+                    );
+                  }}
+                  onPointerMove={extendSelectionAtPointer}
+                  onClick={(event) => {
+                    if (didDragRef.current) {
+                      event.preventDefault();
+                      return;
+                    }
+                    setEditorOpen(false);
+                    setSelection(null);
+                  }}
+                >
+                  <img src={region.image} alt="" draggable={false} />
+                </a>
+              );
+            })}
             {draftPoster && normalizedSelection && (
               <img
                 src={draftPoster}
@@ -493,9 +565,9 @@ export function ToiletDoor() {
                     type="button"
                     onPointerDown={(event) => {
                       event.preventDefault();
-                      startSelection(tile.index);
+                      beginPointer(tile.index, event.clientX, event.clientY);
                     }}
-                    onPointerEnter={() => extendSelection(tile.index)}
+                    onPointerEnter={(event) => extendSelection(tile.index, event)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
@@ -505,7 +577,9 @@ export function ToiletDoor() {
                     }}
                     className={`pixel-door__tile ${selected ? "pixel-door__tile--selected" : ""} ${
                       tile.mine ? "pixel-door__tile--mine" : ""
-                    } ${tile.reserved ? "pixel-door__tile--reserved" : ""}`}
+                    } ${tile.reserved ? "pixel-door__tile--reserved" : ""} ${
+                      tile.href ? "pixel-door__tile--link" : ""
+                    }`}
                     title={`${translate("pixelBlock")} #${tile.index + 1} · ${
                       tile.mine ? translate("pixelYours") : formatBRL(tile.priceCents)
                     }${tile.href ? ` · ${doorHrefHost(tile.href)}` : ""}`}

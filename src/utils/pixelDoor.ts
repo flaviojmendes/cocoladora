@@ -239,9 +239,13 @@ export function posterRegions(tiles: DoorPixelTile[]) {
     const endCol = Math.max(...cols);
     const startRow = Math.min(...rows);
     const endRow = Math.max(...rows);
+    const hrefs = [
+      ...new Set(group.map((tile) => tile.href).filter((value): value is string => Boolean(value))),
+    ];
     return {
       id,
       image: group[0].image || "",
+      href: hrefs.length === 1 ? hrefs[0] : "",
       left: (startCol / TILE_COLUMNS) * 100,
       top: (startRow / TILE_ROWS) * 100,
       width: ((endCol - startCol + 1) / TILE_COLUMNS) * 100,

@@ -234,6 +234,10 @@ body,
   pointer-events: none;
 }
 
+.pixel-door__tile--link {
+  cursor: pointer;
+}
+
 .pixel-door__tiles--preview .pixel-door__tile {
   border-color: transparent;
   background: transparent;
@@ -584,6 +588,27 @@ body,
   object-fit: fill;
   pointer-events: none;
   image-rendering: auto;
+}
+
+.pixel-door__poster-link {
+  position: absolute;
+  z-index: 18;
+  display: block;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pixel-door__poster-link img {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+.pixel-door__poster-link--idle {
+  z-index: 12;
+  pointer-events: none;
 }
 
 .pixel-door__poster--draft {
