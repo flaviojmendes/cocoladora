@@ -60,6 +60,42 @@ function parseArtwork(body: any, tileIndices: number[]): string[] | { error: str
   return tileIndices.map((index) => byIndex.get(index) as string);
 }
 
+function parseHref(value: unknown): string | { error: string } {
+  if (value === undefined || value === null || value === "") return "";
+  if (typeof value !== "string") return { error: "Link inválido." };
+  const trimmed = value.trim().slice(0, 500);
+  if (!trimmed) return "";
+  try {
+    const url = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return { error: "Link inválido. Use um endereço http ou https." };
+    }
+    const host = url.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+      return { error: "Link inválido. Use um endereço http ou https." };
+    }
+    url.username = "";
+    url.password = "";
+    return url.toString().slice(0, 500);
+  } catch {
+    return { error: "Link inválido. Use um endereço http ou https." };
+  }
+}
+
+function parsePoster(value: unknown): string | { error: string } {
+  if (value === undefined || value === null || value === "") return "";
+  if (typeof value !== "string") return { error: "Imagem inválida." };
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.length > 220000) {
+    return { error: "Imagem grande demais. Escolha uma área menor ou outra foto." };
+  }
+  const match = trimmed.match(/^data:image\/(jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=\s]+)$/i);
+  if (!match) return { error: "Envie uma imagem JPEG, PNG ou WebP." };
+  const kind = match[1].toLowerCase() === "jpg" ? "jpeg" : match[1].toLowerCase();
+  return `data:image/${kind};base64,${match[2].replace(/\s/g, "")}`;
+}
+
 async function ensurePixelTables() {
   if (initialized) return;
   await sql`
@@ -92,6 +128,17 @@ async function ensurePixelTables() {
     );
   `;
   await sql`ALTER TABLE pixel_orders ADD COLUMN IF NOT EXISTS tile_pixels JSONB;`;
+  await sql`ALTER TABLE pixel_orders ADD COLUMN IF NOT EXISTS href VARCHAR(500) DEFAULT '';`;
+  await sql`ALTER TABLE door_pixel_tiles ADD COLUMN IF NOT EXISTS href VARCHAR(500) DEFAULT '';`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS door_pixel_posters (
+      poster_id VARCHAR(64) PRIMARY KEY,
+      image TEXT NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+  await sql`ALTER TABLE door_pixel_tiles ADD COLUMN IF NOT EXISTS poster_id VARCHAR(64);`;
+  await sql`ALTER TABLE pixel_orders ADD COLUMN IF NOT EXISTS poster TEXT;`;
   initialized = true;
 }
 
@@ -148,6 +195,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const artwork = parseArtwork(req.body, tileIndices);
     if ("error" in artwork) {
       return res.status(400).json({ error: artwork.error });
+    }
+    const href = parseHref(req.body?.href);
+    if (typeof href !== "string") {
+      return res.status(400).json({ error: href.error });
+    }
+    const poster = parsePoster(req.body?.poster);
+    if (typeof poster !== "string") {
+      return res.status(400).json({ error: poster.error });
     }
 
     const orderId = randomUUID();
@@ -228,14 +283,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
       await client.query(
         `INSERT INTO pixel_orders
-           (order_id, owner_hash, tile_indices, tile_prices, tile_pixels, total_cents, status)
-         VALUES ($1, $2, $3::jsonb, $4::jsonb, $5::jsonb, $6, 'pending')`,
+           (order_id, owner_hash, tile_indices, tile_prices, tile_pixels, href, poster, total_cents, status)
+         VALUES ($1, $2, $3::jsonb, $4::jsonb, $5::jsonb, $6, $7, $8, 'pending')`,
         [
           orderId,
           ownerHash,
           JSON.stringify(tileIndices),
           JSON.stringify(tilePrices),
           JSON.stringify(artwork),
+          href,
+          poster,
           totalCents,
         ]
       );

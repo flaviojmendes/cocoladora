@@ -11,11 +11,16 @@ export const START_PRICE_CENTS = 500;
 export const BID_STEP_CENTS = 100;
 export const PIXEL_OWNER_TOKEN_KEY = "cocoladora_pixel_owner";
 export const PIXEL_DRAFT_KEY = "cocoladora_pixel_draft";
+export const MAX_PIXEL_IMAGE_BYTES = 5 * 1024 * 1024;
+export const MAX_PIXEL_HREF_LENGTH = 500;
+export const MAX_POSTER_CHARS = 220_000;
 
 export type PixelDraft = {
   tileIndices: number[];
   tiles: Array<{ index: number; pixels: string }>;
   bidInput: string;
+  href?: string;
+  poster?: string;
 };
 
 export const PIXEL_PALETTE = [
@@ -56,7 +61,98 @@ export function emptyPixelTiles(): DoorPixelTile[] {
     owned: false,
     mine: false,
     reserved: false,
+    href: "",
+    posterId: "",
+    image: "",
   }));
+}
+
+export function normalizeDoorHref(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim().slice(0, MAX_PIXEL_HREF_LENGTH);
+  if (!trimmed) return "";
+  try {
+    const url = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+    const host = url.hostname.toLowerCase();
+    if (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1" ||
+      host.endsWith(".local") ||
+      host.endsWith(".internal")
+    ) {
+      return "";
+    }
+    url.username = "";
+    url.password = "";
+    return url.toString().slice(0, MAX_PIXEL_HREF_LENGTH);
+  } catch {
+    return "";
+  }
+}
+
+export function doorHrefHost(href: string): string {
+  try {
+    return new URL(href).hostname.replace(/^www\./, "");
+  } catch {
+    return href;
+  }
+}
+
+export function posterSizeForSelection(tileCols: number, tileRows: number) {
+  return {
+    width: Math.min(640, Math.max(48, tileCols * 40)),
+    height: Math.min(960, Math.max(48, tileRows * 40)),
+  };
+}
+
+export function encodePosterFromImage(image: CanvasImageSource, width: number, height: number): string {
+  let nextWidth = width;
+  let nextHeight = height;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const canvas = document.createElement("canvas");
+    canvas.width = nextWidth;
+    canvas.height = nextHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return "";
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(image, 0, 0, nextWidth, nextHeight);
+    for (let quality = 0.86; quality >= 0.45; quality -= 0.08) {
+      const data = canvas.toDataURL("image/jpeg", quality);
+      if (data.length <= MAX_POSTER_CHARS) return data;
+    }
+    nextWidth = Math.max(48, Math.round(nextWidth * 0.75));
+    nextHeight = Math.max(48, Math.round(nextHeight * 0.75));
+  }
+  return "";
+}
+
+export function posterRegions(tiles: DoorPixelTile[]) {
+  const groups = new Map<string, DoorPixelTile[]>();
+  for (const tile of tiles) {
+    if (!tile.posterId || !tile.image) continue;
+    const list = groups.get(tile.posterId) || [];
+    list.push(tile);
+    groups.set(tile.posterId, list);
+  }
+  return [...groups.entries()].map(([id, group]) => {
+    const cols = group.map((tile) => tile.index % TILE_COLUMNS);
+    const rows = group.map((tile) => Math.floor(tile.index / TILE_COLUMNS));
+    const startCol = Math.min(...cols);
+    const endCol = Math.max(...cols);
+    const startRow = Math.min(...rows);
+    const endRow = Math.max(...rows);
+    return {
+      id,
+      image: group[0].image || "",
+      left: (startCol / TILE_COLUMNS) * 100,
+      top: (startRow / TILE_ROWS) * 100,
+      width: ((endCol - startCol + 1) / TILE_COLUMNS) * 100,
+      height: ((endRow - startRow + 1) / TILE_ROWS) * 100,
+    };
+  });
 }
 
 export function getPixelOwnerToken(): string {

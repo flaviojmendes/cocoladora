@@ -1,12 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
+import { FaImage, FaLink } from "react-icons/fa";
 import { DoorPixelTile, PixelSelection } from "../../entities/DoorPixel";
 import { translate } from "../../languages/translator";
 import {
+  MAX_PIXEL_IMAGE_BYTES,
   PIXEL_PALETTE,
   TILE_COLUMNS,
   TILE_SIZE,
+  encodePosterFromImage,
+  normalizeDoorHref,
   normalizeSelection,
   normalizeTilePixels,
+  posterSizeForSelection,
   selectionTileIndices,
 } from "../../utils/pixelDoor";
 
@@ -15,9 +20,12 @@ type Props = {
   selection: PixelSelection;
   saving: boolean;
   requiresPayment?: boolean;
+  initialHref?: string;
+  initialPoster?: string;
   onCancel: () => void;
   onDraftChange?: (updates: Array<{ index: number; pixels: string }>) => void;
-  onSave: (updates: Array<{ index: number; pixels: string }>) => void;
+  onPosterChange?: (poster: string) => void;
+  onSave: (updates: Array<{ index: number; pixels: string }>, href: string, poster: string) => void;
 };
 
 function buildArtwork(tiles: DoorPixelTile[], selection: PixelSelection) {
@@ -50,15 +58,23 @@ export function PixelDoorEditor({
   selection,
   saving,
   requiresPayment = false,
+  initialHref = "",
+  initialPoster = "",
   onCancel,
   onDraftChange,
+  onPosterChange,
   onSave,
 }: Props) {
   const [initial] = useState(() => buildArtwork(tiles, selection));
   const [pixels, setPixels] = useState<string[]>(initial.pixels);
   const [colorIndex, setColorIndex] = useState(1);
   const [text, setText] = useState("");
+  const [href, setHref] = useState(initialHref);
+  const [poster, setPoster] = useState(initialPoster);
+  const [linkError, setLinkError] = useState("");
+  const [imageError, setImageError] = useState("");
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const drawingRef = useRef(false);
   const editorScale = Math.min(416 / initial.width, 416 / initial.height);
   const editorWidth = Math.max(initial.width, Math.floor(initial.width * editorScale));
@@ -132,6 +148,39 @@ export function PixelDoorEditor({
     );
   };
 
+  const applyImageFile = (file: File | undefined) => {
+    setImageError("");
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setImageError(translate("pixelImageError"));
+      return;
+    }
+    if (file.size > MAX_PIXEL_IMAGE_BYTES) {
+      setImageError(translate("pixelImageTooBig"));
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      const tileCols = initial.area.endCol - initial.area.startCol + 1;
+      const tileRows = initial.area.endRow - initial.area.startRow + 1;
+      const size = posterSizeForSelection(tileCols, tileRows);
+      const encoded = encodePosterFromImage(image, size.width, size.height);
+      URL.revokeObjectURL(url);
+      if (!encoded) {
+        setImageError(translate("pixelImageTooBig"));
+        return;
+      }
+      setPoster(encoded);
+      onPosterChange?.(encoded);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      setImageError(translate("pixelImageError"));
+    };
+    image.src = url;
+  };
+
   const packTiles = (source: string[]) =>
     selectionTileIndices(initial.area).map((index) => {
       const tileX = (index % TILE_COLUMNS) - initial.area.startCol;
@@ -152,7 +201,14 @@ export function PixelDoorEditor({
   }, [pixels]);
 
   const save = () => {
-    onSave(packTiles(pixels));
+    const trimmed = href.trim();
+    const normalized = normalizeDoorHref(trimmed);
+    if (trimmed && !normalized) {
+      setLinkError(translate("pixelLinkInvalid"));
+      return;
+    }
+    setLinkError("");
+    onSave(packTiles(pixels), normalized, poster);
   };
 
   return (
@@ -161,28 +217,30 @@ export function PixelDoorEditor({
         {translate("pixelEditorHint")} {initial.width} × {initial.height} px
       </p>
 
-      <div className="pixel-editor-stage">
-        <canvas
-          ref={canvasRef}
-          width={initial.width}
-          height={initial.height}
-          style={{ width: editorWidth, height: editorHeight }}
-          onPointerDown={(event) => {
-            drawingRef.current = true;
-            event.currentTarget.setPointerCapture(event.pointerId);
-            paintAtEvent(event);
-          }}
-          onPointerMove={(event) => {
-            if (drawingRef.current) paintAtEvent(event);
-          }}
-          onPointerUp={() => {
-            drawingRef.current = false;
-          }}
-          onPointerCancel={() => {
-            drawingRef.current = false;
-          }}
-          aria-label={translate("pixelEditorCanvas")}
-        />
+      <div className={`pixel-editor-stage ${poster ? "pixel-editor-stage--photo" : ""}`}>
+        <div className="pixel-editor-frame" style={{ width: editorWidth, height: editorHeight }}>
+          {poster && <img src={poster} alt="" className="pixel-editor-poster" aria-hidden="true" />}
+          <canvas
+            ref={canvasRef}
+            width={initial.width}
+            height={initial.height}
+            onPointerDown={(event) => {
+              drawingRef.current = true;
+              event.currentTarget.setPointerCapture(event.pointerId);
+              paintAtEvent(event);
+            }}
+            onPointerMove={(event) => {
+              if (drawingRef.current) paintAtEvent(event);
+            }}
+            onPointerUp={() => {
+              drawingRef.current = false;
+            }}
+            onPointerCancel={() => {
+              drawingRef.current = false;
+            }}
+            aria-label={translate("pixelEditorCanvas")}
+          />
+        </div>
       </div>
 
       <div>
@@ -202,6 +260,45 @@ export function PixelDoorEditor({
             />
           ))}
         </div>
+      </div>
+
+      <div>
+        <label className="block font-secondary text-primary-dark mb-1" htmlFor="pixel-upload">
+          {translate("pixelUploadImage")}
+        </label>
+        <input
+          ref={fileRef}
+          id="pixel-upload"
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          className="sr-only"
+          onChange={(event) => {
+            applyImageFile(event.target.files?.[0]);
+            event.currentTarget.value = "";
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="pixel-editor-upload"
+        >
+          <FaImage />
+          {translate("pixelUploadButton")}
+        </button>
+        <p className="pixel-editor-note">{translate("pixelUploadHint")}</p>
+        {poster && (
+          <button
+            type="button"
+            onClick={() => {
+              setPoster("");
+              onPosterChange?.("");
+            }}
+            className="pixel-editor-remove"
+          >
+            {translate("pixelRemoveImage")}
+          </button>
+        )}
+        {imageError && <p className="pixel-editor-error">{imageError}</p>}
       </div>
 
       <div>
@@ -226,6 +323,29 @@ export function PixelDoorEditor({
             {translate("pixelApplyText")}
           </button>
         </div>
+      </div>
+
+      <div>
+        <label className="block font-secondary text-primary-dark mb-1" htmlFor="pixel-link">
+          {translate("pixelLinkLabel")}
+        </label>
+        <div className="pixel-link-field">
+          <FaLink />
+          <input
+            id="pixel-link"
+            value={href}
+            onChange={(event) => {
+              setHref(event.target.value);
+              setLinkError("");
+            }}
+            inputMode="url"
+            autoComplete="url"
+            placeholder={translate("pixelLinkPlaceholder")}
+            maxLength={500}
+          />
+        </div>
+        <p className="pixel-editor-note">{translate("pixelLinkHint")}</p>
+        {linkError && <p className="pixel-editor-error">{linkError}</p>}
       </div>
 
       <div className="flex gap-3 pt-2">

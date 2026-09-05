@@ -394,12 +394,21 @@ export const ApiService = {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Não foi possível carregar os pixels.");
     }
-    return res.json();
+    const data = await res.json();
+    if (Array.isArray(data)) return data;
+    const posters = data.posters && typeof data.posters === "object" ? data.posters : {};
+    const tiles = Array.isArray(data.tiles) ? data.tiles : [];
+    return tiles.map((tile: DoorPixelTile) => ({
+      ...tile,
+      image: tile.posterId ? posters[tile.posterId] || "" : "",
+    }));
   },
 
   async saveDoorPixelTiles(
     ownerToken: string,
-    tiles: Array<{ index: number; pixels: string }>
+    tiles: Array<{ index: number; pixels: string }>,
+    href = "",
+    poster = ""
   ): Promise<void> {
     const res = await fetch("/api/pixels", {
       method: "PATCH",
@@ -407,7 +416,7 @@ export const ApiService = {
         "Content-Type": "application/json",
         "x-pixel-owner": ownerToken,
       },
-      body: JSON.stringify({ tiles }),
+      body: JSON.stringify({ tiles, href, poster }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -420,6 +429,8 @@ export const ApiService = {
     tileIndices: number[];
     bidTotalCents: number;
     tiles: Array<{ index: number; pixels: string }>;
+    href?: string;
+    poster?: string;
   }): Promise<{ checkoutUrl: string; totalCents: number; tileCount: number }> {
     const res = await fetch("/api/pixel-checkout", {
       method: "POST",

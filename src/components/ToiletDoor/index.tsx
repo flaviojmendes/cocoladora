@@ -3,6 +3,7 @@ import {
   FaCheck,
   FaCopy,
   FaEdit,
+  FaExternalLinkAlt,
   FaKey,
   FaLock,
   FaMousePointer,
@@ -19,11 +20,13 @@ import {
   TILE_ROWS,
   TILE_SIZE,
   composeDoorPixels,
+  doorHrefHost,
   emptyPixelTiles,
   formatBRL,
   getPixelOwnerToken,
   mergeTilePixels,
   normalizeSelection,
+  posterRegions,
   readPixelDraft,
   selectionMinimumBid,
   selectionTileIndices,
@@ -75,6 +78,8 @@ export function ToiletDoor() {
   const [keyModalOpen, setKeyModalOpen] = useState(false);
   const [keyInput, setKeyInput] = useState("");
   const [draftTiles, setDraftTiles] = useState<Array<{ index: number; pixels: string }>>([]);
+  const [draftHref, setDraftHref] = useState("");
+  const [draftPoster, setDraftPoster] = useState("");
   const canDrawRef = useRef(false);
 
   const loadTiles = useCallback(async () => {
@@ -102,6 +107,8 @@ export function ToiletDoor() {
     const saved = selectionFromIndices(draft.tileIndices);
     if (saved) setSelection(saved);
     if (draft.bidInput) setBidInput(draft.bidInput);
+    if (draft.href) setDraftHref(draft.href);
+    if (draft.poster) setDraftPoster(draft.poster);
     if (new URLSearchParams(window.location.search).get("pixel_checkout") === "cancelled") {
       setEditorOpen(true);
     }
@@ -148,12 +155,19 @@ export function ToiletDoor() {
               const draft = readPixelDraft();
               if (draft?.tiles?.length) {
                 try {
-                  await ApiService.saveDoorPixelTiles(ownerToken, draft.tiles);
+                  await ApiService.saveDoorPixelTiles(
+                    ownerToken,
+                    draft.tiles,
+                    draft.href || "",
+                    draft.poster || ""
+                  );
                   await loadTiles();
                 } catch {}
               }
               clearPixelDraft();
               setDraftTiles([]);
+              setDraftHref("");
+              setDraftPoster("");
               setNotice(translate("pixelPurchaseSuccess"));
               setEditorOpen(false);
               window.history.replaceState({}, "", `${window.location.pathname}#writeMessage`);
@@ -213,6 +227,17 @@ export function ToiletDoor() {
   const selectedPixelHeight = normalizedSelection
     ? (normalizedSelection.endRow - normalizedSelection.startRow + 1) * TILE_SIZE
     : 0;
+  const selectedHrefs = [
+    ...new Set(selectedTiles.map((tile) => tile.href).filter((value): value is string => Boolean(value))),
+  ];
+  const tileHref = selectedHrefs.length === 1 ? selectedHrefs[0] : "";
+  const editorHref = draftHref || (selectionIsMine ? tileHref : "");
+  const tileImages = [
+    ...new Set(selectedTiles.map((tile) => tile.image).filter((value): value is string => Boolean(value))),
+  ];
+  const tilePoster = tileImages.length === 1 ? tileImages[0] : "";
+  const editorPoster = draftPoster || (selectionIsMine ? tilePoster : "");
+  const doorPosters = useMemo(() => posterRegions(tiles), [tiles]);
 
   const selectedKey = selectedIndices.join(",");
   useEffect(() => {
@@ -232,6 +257,8 @@ export function ToiletDoor() {
     anchorRef.current = { col, row };
     draggingRef.current = true;
     setDraftTiles([]);
+    setDraftHref("");
+    setDraftPoster("");
     setEditorOpen(false);
     setSelection({ startCol: col, startRow: row, endCol: col, endRow: row });
     AudioService.playPop();
@@ -266,7 +293,11 @@ export function ToiletDoor() {
     });
   };
 
-  const checkout = async (artwork: Array<{ index: number; pixels: string }>) => {
+  const checkout = async (
+    artwork: Array<{ index: number; pixels: string }>,
+    href: string,
+    poster: string
+  ) => {
     if (!selectedIndices.length || selectionIsMine || selectionIsMixed || selectionReserved) return;
     const bidTotalCents = parseBidInput(bidInput);
     if (!Number.isFinite(bidTotalCents) || bidTotalCents < minimumBid) {
@@ -280,6 +311,8 @@ export function ToiletDoor() {
       tileIndices: selectedIndices,
       tiles: artwork,
       bidInput,
+      href,
+      poster,
     });
     try {
       const result = await ApiService.createPixelCheckout({
@@ -287,6 +320,8 @@ export function ToiletDoor() {
         tileIndices: selectedIndices,
         bidTotalCents,
         tiles: artwork,
+        href,
+        poster,
       });
       window.location.assign(result.checkoutUrl);
     } catch (err: any) {
@@ -298,18 +333,26 @@ export function ToiletDoor() {
     }
   };
 
-  const saveArtwork = async (updates: Array<{ index: number; pixels: string }>) => {
+  const saveArtwork = async (
+    updates: Array<{ index: number; pixels: string }>,
+    href: string,
+    poster: string
+  ) => {
     setDraftTiles(updates);
+    setDraftHref(href);
+    setDraftPoster(poster);
     if (!selectionIsMine) {
-      await checkout(updates);
+      await checkout(updates, href, poster);
       return;
     }
     setSavingArt(true);
     setError("");
     try {
-      await ApiService.saveDoorPixelTiles(ownerToken, updates);
+      await ApiService.saveDoorPixelTiles(ownerToken, updates, href, poster);
       clearPixelDraft();
       setDraftTiles([]);
+      setDraftHref("");
+      setDraftPoster("");
       await loadTiles();
       setEditorOpen(false);
       setNotice(translate("pixelArtSaved"));
@@ -400,6 +443,38 @@ export function ToiletDoor() {
               aria-label={translate("pixelDoorCanvas")}
             />
 
+            {doorPosters.map((region) => (
+              <img
+                key={region.id}
+                src={region.image}
+                alt=""
+                className="pixel-door__poster"
+                style={{
+                  left: `${region.left}%`,
+                  top: `${region.top}%`,
+                  width: `${region.width}%`,
+                  height: `${region.height}%`,
+                }}
+              />
+            ))}
+            {draftPoster && normalizedSelection && (
+              <img
+                src={draftPoster}
+                alt=""
+                className="pixel-door__poster pixel-door__poster--draft"
+                style={{
+                  left: `${(normalizedSelection.startCol / TILE_COLUMNS) * 100}%`,
+                  top: `${(normalizedSelection.startRow / TILE_ROWS) * 100}%`,
+                  width: `${
+                    ((normalizedSelection.endCol - normalizedSelection.startCol + 1) / TILE_COLUMNS) * 100
+                  }%`,
+                  height: `${
+                    ((normalizedSelection.endRow - normalizedSelection.startRow + 1) / TILE_ROWS) * 100
+                  }%`,
+                }}
+              />
+            )}
+
             <div
               className={`pixel-door__tiles ${
                 editorOpen ? "pixel-door__tiles--locked pixel-door__tiles--preview" : ""
@@ -430,10 +505,12 @@ export function ToiletDoor() {
                     }}
                     className={`pixel-door__tile ${selected ? "pixel-door__tile--selected" : ""} ${
                       tile.mine ? "pixel-door__tile--mine" : ""
-                    } ${tile.reserved ? "pixel-door__tile--reserved" : ""}`}
+                    } ${tile.reserved ? "pixel-door__tile--reserved" : ""} ${
+                      tile.href ? "pixel-door__tile--link" : ""
+                    }`}
                     title={`${translate("pixelBlock")} #${tile.index + 1} · ${
                       tile.mine ? translate("pixelYours") : formatBRL(tile.priceCents)
-                    }`}
+                    }${tile.href ? ` · ${doorHrefHost(tile.href)}` : ""}`}
                     aria-label={`${translate("pixelBlock")} ${tile.index + 1}`}
                   />
                 );
@@ -478,6 +555,17 @@ export function ToiletDoor() {
                     </span>
                   </label>
                 )}
+                {tileHref && !editorOpen && (
+                  <a
+                    href={tileHref}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow ugc"
+                    className="pixel-purchase-panel__link"
+                  >
+                    <FaExternalLinkAlt />
+                    {translate("pixelOpenLink")} {doorHrefHost(tileHref)}
+                  </a>
+                )}
                 {editorOpen ? (
                   <PixelDoorEditor
                     key={`${normalizedSelection?.startCol}-${normalizedSelection?.startRow}-${normalizedSelection?.endCol}-${normalizedSelection?.endRow}`}
@@ -485,8 +573,11 @@ export function ToiletDoor() {
                     selection={selection}
                     saving={savingArt || checkoutLoading}
                     requiresPayment={!selectionIsMine}
+                    initialHref={editorHref}
+                    initialPoster={editorPoster}
                     onCancel={() => setEditorOpen(false)}
                     onDraftChange={setDraftTiles}
+                    onPosterChange={setDraftPoster}
                     onSave={saveArtwork}
                   />
                 ) : (

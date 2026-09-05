@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { sql } from "@vercel/postgres";
 import Stripe from "stripe";
@@ -46,7 +47,7 @@ async function completeOrder(orderId: string) {
   try {
     await client.query("BEGIN");
     const orderResult = await client.query(
-      `SELECT order_id, owner_hash, tile_indices, tile_prices, tile_pixels, status
+      `SELECT order_id, owner_hash, tile_indices, tile_prices, tile_pixels, href, poster, status
        FROM pixel_orders
        WHERE order_id = $1
        FOR UPDATE`,
@@ -79,17 +80,34 @@ async function completeOrder(orderId: string) {
       throw new Error("Pixel reservation no longer belongs to this order");
     }
 
+    const href =
+      typeof order.href === "string" && /^https?:\/\//i.test(order.href) ? order.href.slice(0, 500) : "";
+    const poster =
+      typeof order.poster === "string" && order.poster.startsWith("data:image/") && order.poster.length <= 220000
+        ? order.poster
+        : "";
+    let posterId: string | null = null;
+    if (poster) {
+      posterId = randomUUID();
+      await client.query(`INSERT INTO door_pixel_posters (poster_id, image) VALUES ($1, $2)`, [
+        posterId,
+        poster,
+      ]);
+    }
+
     await client.query(
       `UPDATE door_pixel_tiles AS tile
        SET price_cents = purchase.price_cents,
            owner_hash = $4,
            pixels = purchase.pixels,
+           href = $5,
+           poster_id = $6,
            reserved_by = NULL,
            reserved_until = NULL,
            updated_at = CURRENT_TIMESTAMP
        FROM unnest($1::smallint[], $2::integer[], $3::text[]) AS purchase(tile_index, price_cents, pixels)
        WHERE tile.tile_index = purchase.tile_index`,
-      [indices, prices, artwork, order.owner_hash]
+      [indices, prices, artwork, order.owner_hash, href, posterId]
     );
     await client.query(
       `UPDATE pixel_orders
@@ -151,6 +169,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const stripe = new Stripe(stripeSecret);
     await sql`ALTER TABLE pixel_orders ADD COLUMN IF NOT EXISTS tile_pixels JSONB`;
+    await sql`ALTER TABLE pixel_orders ADD COLUMN IF NOT EXISTS href VARCHAR(500) DEFAULT ''`;
+    await sql`ALTER TABLE door_pixel_tiles ADD COLUMN IF NOT EXISTS href VARCHAR(500) DEFAULT ''`;
+    await sql`
+      CREATE TABLE IF NOT EXISTS door_pixel_posters (
+        poster_id VARCHAR(64) PRIMARY KEY,
+        image TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+    await sql`ALTER TABLE door_pixel_tiles ADD COLUMN IF NOT EXISTS poster_id VARCHAR(64)`;
+    await sql`ALTER TABLE pixel_orders ADD COLUMN IF NOT EXISTS poster TEXT`;
     const event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
     const session = event.data.object as Stripe.Checkout.Session;
     const orderId = session.metadata?.orderId;

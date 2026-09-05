@@ -1,10 +1,11 @@
-import { createHash, timingSafeEqual } from "crypto";
+import { createHash, randomUUID, timingSafeEqual } from "crypto";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { sql } from "@vercel/postgres";
 
 const TILE_COUNT = 384;
 const PIXELS_PER_TILE = 64;
 const BLANK_PIXELS = "0".repeat(PIXELS_PER_TILE);
+const MAX_POSTER_CHARS = 220_000;
 
 let initialized = false;
 
@@ -33,7 +34,40 @@ function publicTile(row: any, ownerHash = "") {
     owned: Boolean(row.owner_hash),
     mine: hashesMatch(ownerHash, row.owner_hash),
     reserved: Boolean(row.reserved_until && new Date(row.reserved_until).getTime() > Date.now()),
+    href: sanitizeHref(row.href),
+    posterId: row.poster_id || "",
   };
+}
+
+function sanitizePoster(value: unknown): string | { error: string } {
+  if (value === undefined || value === null || value === "") return "";
+  if (typeof value !== "string") return { error: "Imagem inválida." };
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.length > MAX_POSTER_CHARS) {
+    return { error: "Imagem grande demais. Escolha uma área menor ou outra foto." };
+  }
+  const match = trimmed.match(/^data:image\/(jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=\s]+)$/i);
+  if (!match) return { error: "Envie uma imagem JPEG, PNG ou WebP." };
+  const kind = match[1].toLowerCase() === "jpg" ? "jpeg" : match[1].toLowerCase();
+  return `data:image/${kind};base64,${match[2].replace(/\s/g, "")}`;
+}
+
+function sanitizeHref(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim().slice(0, 500);
+  if (!trimmed) return "";
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+    const host = url.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1") return "";
+    url.username = "";
+    url.password = "";
+    return url.toString().slice(0, 500);
+  } catch {
+    return "";
+  }
 }
 
 async function ensurePixelTables() {
@@ -69,6 +103,15 @@ async function ensurePixelTables() {
     );
   `;
   await sql`ALTER TABLE pixel_orders ADD COLUMN IF NOT EXISTS tile_pixels JSONB;`;
+  await sql`ALTER TABLE door_pixel_tiles ADD COLUMN IF NOT EXISTS href VARCHAR(500) DEFAULT '';`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS door_pixel_posters (
+      poster_id VARCHAR(64) PRIMARY KEY,
+      image TEXT NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+  await sql`ALTER TABLE door_pixel_tiles ADD COLUMN IF NOT EXISTS poster_id VARCHAR(64);`;
   initialized = true;
 }
 
@@ -87,11 +130,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         WHERE reserved_until < CURRENT_TIMESTAMP;
       `;
       const { rows } = await sql`
-        SELECT tile_index, price_cents, owner_hash, pixels, reserved_until
+        SELECT tile_index, price_cents, owner_hash, pixels, reserved_until, href, poster_id
         FROM door_pixel_tiles
         ORDER BY tile_index ASC;
       `;
-      return res.status(200).json(rows.map((row) => publicTile(row, ownerHash)));
+      const posterIds = [
+        ...new Set(rows.map((row) => row.poster_id).filter((id): id is string => Boolean(id))),
+      ];
+      const posters: { [id: string]: string } = {};
+      if (posterIds.length) {
+        const posterRows = await sql.query(
+          `SELECT poster_id, image FROM door_pixel_posters WHERE poster_id = ANY($1::varchar[])`,
+          [posterIds]
+        );
+        for (const row of posterRows.rows) {
+          posters[row.poster_id] = row.image;
+        }
+      }
+      return res.status(200).json({
+        tiles: rows.map((row) => publicTile(row, ownerHash)),
+        posters,
+      });
     }
 
     if (req.method === "PATCH") {
@@ -124,6 +183,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: "Dados de pixel inválidos." });
       }
 
+      const rawHref = typeof req.body?.href === "string" ? req.body.href.trim() : "";
+      const href = sanitizeHref(rawHref);
+      if (rawHref && !href) {
+        return res.status(400).json({ error: "Link inválido. Use um endereço http ou https." });
+      }
+
+      const poster = sanitizePoster(req.body?.poster);
+      if (typeof poster !== "string") {
+        return res.status(400).json({ error: poster.error });
+      }
+
       const ownerHash = hashToken(ownerToken);
       const client = await sql.connect();
       try {
@@ -143,13 +213,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(403).json({ error: "Você não possui todos os pixels selecionados." });
         }
 
+        let posterId: string | null = null;
+        if (poster) {
+          posterId = randomUUID();
+          await client.query(
+            `INSERT INTO door_pixel_posters (poster_id, image) VALUES ($1, $2)`,
+            [posterId, poster]
+          );
+        }
+
         await client.query(
           `UPDATE door_pixel_tiles AS tile
            SET pixels = art.pixels,
+               href = $3,
+               poster_id = $4,
                updated_at = CURRENT_TIMESTAMP
            FROM unnest($1::smallint[], $2::text[]) AS art(tile_index, pixels)
            WHERE tile.tile_index = art.tile_index`,
-          [indices, normalized.map((item: any) => item.pixels)]
+          [indices, normalized.map((item: any) => item.pixels), href, posterId]
         );
         await client.query("COMMIT");
       } catch (error) {

@@ -5,6 +5,9 @@ export type DoorPixelTile = {
   owned: boolean;
   mine: boolean;
   reserved: boolean;
+  href?: string;
+  posterId?: string;
+  image?: string;
 };
 
 export type PixelSelection = {
