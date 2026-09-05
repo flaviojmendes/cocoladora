@@ -479,18 +479,95 @@ body,
   max-height: 26rem;
 }
 
-.pixel-editor-poster {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
+.pixel-editor-clip {
+  position: relative;
+  overflow: hidden;
   width: 100%;
   height: 100%;
+}
+
+.pixel-editor-poster {
+  position: absolute;
+  z-index: 0;
+  max-width: none;
   object-fit: fill;
   image-rendering: auto;
+  pointer-events: none;
 }
 
 .pixel-editor-stage--photo canvas {
   background: transparent;
+}
+
+.pixel-editor-crop {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  cursor: grab;
+  touch-action: none;
+}
+
+.pixel-editor-crop:active {
+  cursor: grabbing;
+}
+
+.pixel-editor-handle {
+  position: absolute;
+  z-index: 3;
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  padding: 0;
+  border: 2px solid #693a20;
+  border-radius: 0;
+  background: #fcf9ea;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  cursor: nwse-resize;
+  touch-action: none;
+  appearance: none;
+}
+
+.pixel-editor-handle--tr,
+.pixel-editor-handle--bl {
+  cursor: nesw-resize;
+}
+
+.pixel-editor-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+}
+
+.pixel-editor-tools button {
+  min-height: 2.2rem;
+  padding: 0.3rem 0.75rem;
+  border: 2px solid #693a20;
+  background: transparent;
+  color: #693a20;
+  font-family: Boogaloo, sans-serif;
+  font-size: 1rem;
+}
+
+.pixel-editor-tools button.pixel-editor-tools--on {
+  background: #693a20;
+  color: #fcf9ea;
+}
+
+.pixel-editor-zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.55rem;
+  color: #693a20;
+  font-family: Cousine, monospace;
+  font-size: 0.75rem;
+}
+
+.pixel-editor-zoom input {
+  flex: 1;
+  accent-color: #815028;
 }
 
 .pixel-editor-remove {
@@ -510,7 +587,7 @@ body,
 }
 
 .pixel-door__poster--draft {
-  outline: 1px solid rgba(251, 191, 36, 0.7);
+  outline: none;
 }
 
 .pixel-swatch {
@@ -528,17 +605,6 @@ body,
   background:
     linear-gradient(45deg, transparent 42%, #b91c1c 43% 57%, transparent 58%),
     repeating-conic-gradient(#fff 0 25%, #d6d3d1 0 50%) 50% / 8px 8px;
-}
-
-.pixel-door__tile--link::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  border-style: solid;
-  border-width: 0 7px 7px 0;
-  border-color: transparent #fbbf24 transparent transparent;
-  pointer-events: none;
 }
 
 .pixel-editor-upload {

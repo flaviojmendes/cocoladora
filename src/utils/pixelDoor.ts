@@ -107,9 +107,75 @@ export function posterSizeForSelection(tileCols: number, tileRows: number) {
   };
 }
 
-export function encodePosterFromImage(image: CanvasImageSource, width: number, height: number): string {
+export type PosterLayout = {
+  x: number;
+  y: number;
+  scale: number;
+};
+
+export function fitImageInFrame(
+  naturalWidth: number,
+  naturalHeight: number,
+  frameWidth: number,
+  frameHeight: number,
+  mode: "contain" | "cover" = "contain"
+): PosterLayout {
+  const factor =
+    mode === "cover"
+      ? Math.max(frameWidth / naturalWidth, frameHeight / naturalHeight)
+      : Math.min(frameWidth / naturalWidth, frameHeight / naturalHeight);
+  return {
+    scale: factor,
+    x: (frameWidth - naturalWidth * factor) / 2,
+    y: (frameHeight - naturalHeight * factor) / 2,
+  };
+}
+
+export function posterScaleLimits(
+  naturalWidth: number,
+  naturalHeight: number,
+  frameWidth: number,
+  frameHeight: number
+) {
+  const contain = Math.min(frameWidth / naturalWidth, frameHeight / naturalHeight);
+  const cover = Math.max(frameWidth / naturalWidth, frameHeight / naturalHeight);
+  return {
+    min: Math.max(0.08, contain * 0.28),
+    max: Math.max(cover * 6, contain * 8),
+  };
+}
+
+export function zoomPosterLayout(
+  layout: PosterLayout,
+  factor: number,
+  cx: number,
+  cy: number,
+  minScale: number,
+  maxScale: number
+): PosterLayout {
+  const next = Math.min(maxScale, Math.max(minScale, layout.scale * factor));
+  const ratio = next / layout.scale;
+  return {
+    scale: next,
+    x: cx - (cx - layout.x) * ratio,
+    y: cy - (cy - layout.y) * ratio,
+  };
+}
+
+export function encodePosterFromImage(
+  image: CanvasImageSource,
+  width: number,
+  height: number,
+  dest?: { x: number; y: number; width: number; height: number }
+): string {
+  const placement = dest ?? { x: 0, y: 0, width, height };
   let nextWidth = width;
   let nextHeight = height;
+  const recipes: Array<{ type: string; qualities: number[] }> = [
+    { type: "image/webp", qualities: [0.86, 0.72, 0.58, 0.42] },
+    { type: "image/png", qualities: [1] },
+    { type: "image/jpeg", qualities: [0.86, 0.72, 0.58, 0.42] },
+  ];
   for (let attempt = 0; attempt < 6; attempt += 1) {
     const canvas = document.createElement("canvas");
     canvas.width = nextWidth;
@@ -118,15 +184,44 @@ export function encodePosterFromImage(image: CanvasImageSource, width: number, h
     if (!ctx) return "";
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(image, 0, 0, nextWidth, nextHeight);
-    for (let quality = 0.86; quality >= 0.45; quality -= 0.08) {
-      const data = canvas.toDataURL("image/jpeg", quality);
-      if (data.length <= MAX_POSTER_CHARS) return data;
+    ctx.clearRect(0, 0, nextWidth, nextHeight);
+    const rx = nextWidth / width;
+    const ry = nextHeight / height;
+    ctx.drawImage(
+      image,
+      placement.x * rx,
+      placement.y * ry,
+      placement.width * rx,
+      placement.height * ry
+    );
+    for (const { type, qualities } of recipes) {
+      for (const quality of qualities) {
+        const data = canvas.toDataURL(type, quality);
+        if (data.startsWith("data:image/") && data.length <= MAX_POSTER_CHARS) return data;
+      }
     }
     nextWidth = Math.max(48, Math.round(nextWidth * 0.75));
     nextHeight = Math.max(48, Math.round(nextHeight * 0.75));
   }
   return "";
+}
+
+export function bakePosterLayout(
+  image: CanvasImageSource,
+  naturalWidth: number,
+  naturalHeight: number,
+  frameWidth: number,
+  frameHeight: number,
+  layout: PosterLayout,
+  outWidth: number,
+  outHeight: number
+): string {
+  return encodePosterFromImage(image, outWidth, outHeight, {
+    x: layout.x * (outWidth / frameWidth),
+    y: layout.y * (outHeight / frameHeight),
+    width: naturalWidth * layout.scale * (outWidth / frameWidth),
+    height: naturalHeight * layout.scale * (outHeight / frameHeight),
+  });
 }
 
 export function posterRegions(tiles: DoorPixelTile[]) {

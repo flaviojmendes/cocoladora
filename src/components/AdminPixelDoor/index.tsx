@@ -292,7 +292,7 @@ export function AdminPixelDoor({ secret, onNotice, onError }: Props) {
                   }}
                   className={`pixel-door__tile ${selected ? "pixel-door__tile--selected" : ""} ${
                     tile.owned ? "pixel-door__tile--mine" : ""
-                  } ${tile.href ? "pixel-door__tile--link" : ""}`}
+                  }`}
                   title={`${translate("pixelBlock")} #${tile.index + 1}${
                     tile.owned ? ` · ${translate("pixelYours")}` : ""
                   }${tile.href ? ` · ${doorHrefHost(tile.href)}` : ""}`}

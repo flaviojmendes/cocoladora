@@ -505,9 +505,7 @@ export function ToiletDoor() {
                     }}
                     className={`pixel-door__tile ${selected ? "pixel-door__tile--selected" : ""} ${
                       tile.mine ? "pixel-door__tile--mine" : ""
-                    } ${tile.reserved ? "pixel-door__tile--reserved" : ""} ${
-                      tile.href ? "pixel-door__tile--link" : ""
-                    }`}
+                    } ${tile.reserved ? "pixel-door__tile--reserved" : ""}`}
                     title={`${translate("pixelBlock")} #${tile.index + 1} · ${
                       tile.mine ? translate("pixelYours") : formatBRL(tile.priceCents)
                     }${tile.href ? ` · ${doorHrefHost(tile.href)}` : ""}`}
