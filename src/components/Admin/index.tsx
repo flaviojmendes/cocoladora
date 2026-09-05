@@ -19,6 +19,7 @@ import {
   inferSalaryFromSession,
   parseCurrencyAmount,
 } from "../../utils/inferSalary";
+import { AdminPixelDoor } from "../AdminPixelDoor";
 import { Modal } from "../Modal";
 
 const SECRET_KEY = "cocoladora_admin_secret";
@@ -59,7 +60,7 @@ type AdminMessage = {
   createdAt?: string;
 };
 
-type Tab = "locations" | "places" | "messages";
+type Tab = "locations" | "places" | "messages" | "pixels";
 type SortDir = "asc" | "desc";
 type SortState = { key: string; dir: SortDir };
 
@@ -67,6 +68,7 @@ const DEFAULT_SORT: Record<Tab, SortState> = {
   locations: { key: "id", dir: "desc" },
   places: { key: "name", dir: "asc" },
   messages: { key: "message", dir: "asc" },
+  pixels: { key: "index", dir: "asc" },
 };
 
 async function adminRequest(secret: string, init: RequestInit & { path?: string } = {}) {
@@ -257,6 +259,7 @@ export function AdminPage() {
   };
 
   const flash = (msg: string) => {
+    setError("");
     setNotice(msg);
     setTimeout(() => setNotice(""), 2500);
   };
@@ -364,7 +367,13 @@ export function AdminPage() {
   }, [messages, query, sort]);
 
   const currentRows =
-    tab === "locations" ? filteredLocations : tab === "places" ? filteredPlaces : filteredMessages;
+    tab === "locations"
+      ? filteredLocations
+      : tab === "places"
+        ? filteredPlaces
+        : tab === "messages"
+          ? filteredMessages
+          : [];
   const pageCount = Math.max(1, Math.ceil(currentRows.length / PAGE_SIZE));
   const paged = currentRows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
@@ -582,8 +591,8 @@ export function AdminPage() {
       <main className="max-w-6xl mx-auto px-4 py-6">
         <div className="bg-background text-secondary rounded-2xl border-4 border-primary p-4 sm:p-6 shadow-xl">
           <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-4">
-            <div className="flex bg-background-dark rounded-xl border-2 border-primary/20 p-1">
-              {(["locations", "places", "messages"] as Tab[]).map((item) => (
+            <div className="flex flex-wrap bg-background-dark rounded-xl border-2 border-primary/20 p-1">
+              {(["locations", "places", "messages", "pixels"] as Tab[]).map((item) => (
                 <button
                   key={item}
                   type="button"
@@ -596,46 +605,52 @@ export function AdminPage() {
                     ? translate("adminSessions")
                     : item === "places"
                     ? translate("adminPlaces")
-                    : translate("adminMessages")}
+                    : item === "messages"
+                    ? translate("adminMessages")
+                    : translate("adminDoor")}
                 </button>
               ))}
             </div>
 
-            <div className="relative flex-1">
-              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-dark/50" />
-              <input
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setPage(0);
-                }}
-                placeholder={translate("adminSearch")}
-                className={`${inputClass} pl-10`}
-              />
-            </div>
+            {tab !== "pixels" && (
+              <>
+                <div className="relative flex-1">
+                  <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-dark/50" />
+                  <input
+                    value={query}
+                    onChange={(e) => {
+                      setQuery(e.target.value);
+                      setPage(0);
+                    }}
+                    placeholder={translate("adminSearch")}
+                    className={`${inputClass} pl-10`}
+                  />
+                </div>
 
-            {tab === "locations" && (
-              <label className="flex items-center gap-2 font-secondary text-sm text-primary-dark whitespace-nowrap">
-                {translate("adminHoursWeek")}
-                <input
-                  type="number"
-                  min={1}
-                  max={168}
-                  value={hoursPerWeek}
-                  onChange={(e) => updateHoursPerWeek(parseFloat(e.target.value))}
-                  className="w-16 py-2 px-2 rounded-lg border-2 border-primary-dark font-secondary text-base text-secondary bg-white text-center focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </label>
+                {tab === "locations" && (
+                  <label className="flex items-center gap-2 font-secondary text-sm text-primary-dark whitespace-nowrap">
+                    {translate("adminHoursWeek")}
+                    <input
+                      type="number"
+                      min={1}
+                      max={168}
+                      value={hoursPerWeek}
+                      onChange={(e) => updateHoursPerWeek(parseFloat(e.target.value))}
+                      className="w-16 py-2 px-2 rounded-lg border-2 border-primary-dark font-secondary text-base text-secondary bg-white text-center focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </label>
+                )}
+
+                <button
+                  type="button"
+                  disabled={selected.size === 0}
+                  onClick={() => deleteIds([...selected])}
+                  className="px-4 py-2 rounded-lg bg-red-700 text-white font-secondary disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  <FaTrash /> {translate("adminDeleteSelected")} ({selected.size})
+                </button>
+              </>
             )}
-
-            <button
-              type="button"
-              disabled={selected.size === 0}
-              onClick={() => deleteIds([...selected])}
-              className="px-4 py-2 rounded-lg bg-red-700 text-white font-secondary disabled:opacity-40 flex items-center justify-center gap-2"
-            >
-              <FaTrash /> {translate("adminDeleteSelected")} ({selected.size})
-            </button>
           </div>
 
           {tab === "locations" && (
@@ -652,10 +667,15 @@ export function AdminPage() {
               {error}
             </p>
           )}
-          {loading && (
+          {loading && tab !== "pixels" && (
             <p className="mb-3 font-secondary text-secondary-light">{translate("adminLoading")}</p>
           )}
 
+          {tab === "pixels" && (
+            <AdminPixelDoor secret={secret} onNotice={flash} onError={setError} />
+          )}
+
+          {tab !== "pixels" && (
           <div className="overflow-x-auto rounded-xl border border-primary/20">
             {tab === "locations" && (
               <table className="w-full text-sm font-secondary min-w-[980px]">
@@ -828,12 +848,13 @@ export function AdminPage() {
               </table>
             )}
           </div>
+          )}
 
-          {currentRows.length === 0 && !loading && (
+          {tab !== "pixels" && currentRows.length === 0 && !loading && (
             <p className="py-8 text-center font-secondary text-secondary-light">{translate("adminEmpty")}</p>
           )}
 
-          {pageCount > 1 && (
+          {tab !== "pixels" && pageCount > 1 && (
             <div className="mt-4 flex items-center justify-center gap-3 font-secondary">
               <button
                 type="button"

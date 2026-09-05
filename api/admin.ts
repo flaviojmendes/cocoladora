@@ -1,6 +1,14 @@
+import { createHash, randomUUID, timingSafeEqual } from "crypto";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { timingSafeEqual } from "crypto";
 import { sql } from "@vercel/postgres";
+
+const TILE_COUNT = 384;
+const PIXELS_PER_TILE = 64;
+const START_PRICE_CENTS = 500;
+const MAX_POSTER_CHARS = 220_000;
+const ADMIN_PIXEL_OWNER = "cocoladora-admin-seed-v1";
+
+let pixelsInitialized = false;
 
 function readProvidedSecret(req: VercelRequest): string {
   const header = req.headers["x-admin-secret"];
@@ -29,6 +37,71 @@ function authorize(req: VercelRequest): "ok" | "unset" | "invalid" {
   const provided = readProvidedSecret(req);
   if (!provided || !secretsMatch(provided, expected)) return "invalid";
   return "ok";
+}
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function sanitizeHref(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim().slice(0, 500);
+  if (!trimmed) return "";
+  try {
+    const url = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+    const host = url.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1") return "";
+    url.username = "";
+    url.password = "";
+    return url.toString().slice(0, 500);
+  } catch {
+    return "";
+  }
+}
+
+function sanitizePoster(value: unknown): string | { error: string } {
+  if (value === undefined || value === null || value === "") return "";
+  if (typeof value !== "string") return { error: "Imagem inválida." };
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.length > MAX_POSTER_CHARS) {
+    return { error: "Imagem grande demais. Escolha uma área menor ou outra foto." };
+  }
+  const match = trimmed.match(/^data:image\/(jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=\s]+)$/i);
+  if (!match) return { error: "Envie uma imagem JPEG, PNG ou WebP." };
+  const kind = match[1].toLowerCase() === "jpg" ? "jpeg" : match[1].toLowerCase();
+  return `data:image/${kind};base64,${match[2].replace(/\s/g, "")}`;
+}
+
+async function ensurePixelTables() {
+  if (pixelsInitialized) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS door_pixel_tiles (
+      tile_index SMALLINT PRIMARY KEY,
+      price_cents INTEGER NOT NULL DEFAULT 500,
+      owner_hash VARCHAR(64),
+      pixels CHAR(64) NOT NULL DEFAULT '0000000000000000000000000000000000000000000000000000000000000000',
+      reserved_by VARCHAR(64),
+      reserved_until TIMESTAMP WITH TIME ZONE,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+  await sql`
+    INSERT INTO door_pixel_tiles (tile_index)
+    SELECT gs FROM generate_series(0, 383) AS gs
+    ON CONFLICT (tile_index) DO NOTHING;
+  `;
+  await sql`ALTER TABLE door_pixel_tiles ADD COLUMN IF NOT EXISTS href VARCHAR(500) DEFAULT '';`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS door_pixel_posters (
+      poster_id VARCHAR(64) PRIMARY KEY,
+      image TEXT NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+  await sql`ALTER TABLE door_pixel_tiles ADD COLUMN IF NOT EXISTS poster_id VARCHAR(64);`;
+  pixelsInitialized = true;
 }
 
 function parseNotes(notes: unknown): string[] {
@@ -61,6 +134,84 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === "POST" && req.body?.action === "login") {
       return res.status(200).json({ ok: true });
+    }
+
+    if (req.method === "POST" && req.body?.action === "seed-pixels") {
+      await ensurePixelTables();
+      const updates = Array.isArray(req.body?.tiles) ? req.body.tiles : [];
+      if (updates.length === 0 || updates.length > TILE_COUNT) {
+        return res.status(400).json({ error: "Envie ao menos um bloco para desenhar." });
+      }
+      const normalized = updates.map((item: any) => ({
+        index: parseInt(String(item.index), 10),
+        pixels: typeof item.pixels === "string" ? item.pixels.toLowerCase() : "",
+      }));
+      const indices = normalized.map((item: { index: number }) => item.index);
+      if (
+        new Set(indices).size !== indices.length ||
+        normalized.some(
+          (item: { index: number; pixels: string }) =>
+            Number.isNaN(item.index) ||
+            item.index < 0 ||
+            item.index >= TILE_COUNT ||
+            item.pixels.length !== PIXELS_PER_TILE ||
+            !/^[0-9a-f]+$/.test(item.pixels)
+        )
+      ) {
+        return res.status(400).json({ error: "Dados de pixel inválidos." });
+      }
+
+      const rawHref = typeof req.body?.href === "string" ? req.body.href.trim() : "";
+      const href = sanitizeHref(rawHref);
+      if (rawHref && !href) {
+        return res.status(400).json({ error: "Link inválido. Use um endereço http ou https." });
+      }
+      const poster = sanitizePoster(req.body?.poster);
+      if (typeof poster !== "string") {
+        return res.status(400).json({ error: poster.error });
+      }
+
+      const ownerHash = hashToken(ADMIN_PIXEL_OWNER);
+      const client = await sql.connect();
+      try {
+        await client.query("BEGIN");
+        let posterId: string | null = null;
+        if (poster) {
+          posterId = randomUUID();
+          await client.query(`INSERT INTO door_pixel_posters (poster_id, image) VALUES ($1, $2)`, [
+            posterId,
+            poster,
+          ]);
+        }
+        await client.query(
+          `UPDATE door_pixel_tiles AS tile
+           SET pixels = art.pixels,
+               href = $3,
+               poster_id = $4,
+               owner_hash = $5,
+               price_cents = GREATEST(tile.price_cents, $6::integer),
+               reserved_by = NULL,
+               reserved_until = NULL,
+               updated_at = CURRENT_TIMESTAMP
+           FROM unnest($1::smallint[], $2::text[]) AS art(tile_index, pixels)
+           WHERE tile.tile_index = art.tile_index`,
+          [
+            indices,
+            normalized.map((item: { pixels: string }) => item.pixels),
+            href,
+            posterId,
+            ownerHash,
+            START_PRICE_CENTS,
+          ]
+        );
+        await client.query("COMMIT");
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      } finally {
+        client.release();
+      }
+      return res.status(200).json({ success: true, tileCount: indices.length });
     }
 
     if (req.method === "GET") {

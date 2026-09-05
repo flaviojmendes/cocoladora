@@ -22,6 +22,7 @@ type Props = {
   requiresPayment?: boolean;
   initialHref?: string;
   initialPoster?: string;
+  hint?: string;
   onCancel: () => void;
   onDraftChange?: (updates: Array<{ index: number; pixels: string }>) => void;
   onPosterChange?: (poster: string) => void;
@@ -60,6 +61,7 @@ export function PixelDoorEditor({
   requiresPayment = false,
   initialHref = "",
   initialPoster = "",
+  hint,
   onCancel,
   onDraftChange,
   onPosterChange,
@@ -214,7 +216,7 @@ export function PixelDoorEditor({
   return (
     <div className="flex flex-col gap-4">
       <p className="font-secondary text-secondary-light">
-        {translate("pixelEditorHint")} {initial.width} × {initial.height} px
+        {hint || translate("pixelEditorHint")} {initial.width} × {initial.height} px
       </p>
 
       <div className={`pixel-editor-stage ${poster ? "pixel-editor-stage--photo" : ""}`}>
